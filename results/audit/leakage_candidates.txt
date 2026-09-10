@@ -1,0 +1,17 @@
+Suspicious Columns and Leakage Candidates:
+========================================
+- frame.time (Potentially risky feature): Raw timestamp can act as proxy for sequence
+- ip.src_host (Identifier): Network identifier (IP/Port/MAC)
+- ip.dst_host (Identifier): Network identifier (IP/Port/MAC)
+- arp.dst.proto_ipv4 (Identifier): Network identifier (IP/Port/MAC)
+- arp.src.proto_ipv4 (Identifier): Network identifier (IP/Port/MAC)
+- icmp.transmit_timestamp (Potentially risky feature): Raw timestamp can act as proxy for sequence
+- http.tls_port (Identifier): Network identifier (IP/Port/MAC)
+- tcp.dstport (Identifier): Network identifier (IP/Port/MAC)
+- tcp.srcport (Identifier): Network identifier (IP/Port/MAC)
+- udp.port (Identifier): Network identifier (IP/Port/MAC)
+- udp.time_delta (Potentially risky feature): Raw timestamp can act as proxy for sequence
+- mbtcp.trans_id (Identifier): Metadata or sequence identifier
+- mbtcp.unit_id (Identifier): Metadata or sequence identifier
+- Attack_label (Direct label/metadata feature): Target column
+- Attack_type (Direct label/metadata feature): Target column

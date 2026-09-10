@@ -1,0 +1,31 @@
+{
+    "experiment_id": "E01_random_forest_binary",
+    "dataset": "Edge-IIoTset",
+    "dataset_file": "DNN-EdgeIIoT-dataset.csv",
+    "dataset_hash": "1d3ef6c7cc22784a528a117f1158f5cad750273679437e18a39c360ee6b79fd7",
+    "target": "Attack_label",
+    "split_strategy": "stratified_random",
+    "random_seed": 42,
+    "model": "RandomForestClassifier",
+    "hyperparameters": {
+        "n_estimators": 200,
+        "class_weight": "balanced"
+    },
+    "train_size": 1553440,
+    "test_size": 332881,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "macro_f1": 1.0,
+    "weighted_f1": 1.0,
+    "fpr": 0.0,
+    "fnr": 0.0,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "training_time_s": 63.19376850128174,
+    "inference_time_s": 0.47974085807800293,
+    "inference_latency_ms": 0.0014411782531234974,
+    "throughput_req_per_s": 693876.6927912477,
+    "model_size_bytes": 12618793
+}

@@ -1,0 +1,92 @@
+feature,importance
+num__tcp.ack,0.11991310205584592
+num__tcp.ack_raw,0.08925233093467583
+num__tcp.checksum,0.0817530359824757
+num__tcp.len,0.07982153175049823
+num__tcp.seq,0.07378887264738623
+num__icmp.seq_le,0.06129978096323354
+num__udp.stream,0.053442736206067466
+num__tcp.flags,0.046438163457384565
+cat__http.request.version_0.0,0.046388533745459676
+cat__http.referer_0.0,0.042695247291221136
+cat__http.referer_0,0.037715879484093606
+cat__http.request.method_0.0,0.030173297269638324
+num__icmp.checksum,0.02879477047272134
+cat__http.request.version_0,0.028250112112869447
+cat__http.request.method_0,0.017076514076073905
+num__tcp.connection.rst,0.01670377451490253
+num__tcp.flags.ack,0.015873507950955462
+cat__mqtt.topic_0.0,0.014324134785555704
+num__http.content_length,0.01341907652118843
+cat__mqtt.conack.flags_0.0,0.012356177813391243
+cat__dns.qry.name.len_0,0.011555274119175936
+num__tcp.connection.syn,0.010725692963012923
+cat__mqtt.protoname_0.0,0.009262892800642542
+cat__mqtt.protoname_0,0.007973001138239136
+cat__mqtt.conack.flags_0,0.006949037305545739
+cat__dns.qry.name.len_0.0,0.006254450552393427
+cat__mqtt.topic_0,0.0054359507731052015
+num__http.response,0.00525935591169909
+cat__http.request.version_HTTP/1.1,0.005181967257408001
+cat__http.request.method_GET,0.004396170416319042
+num__arp.opcode,0.002848489675665406
+num__dns.qry.name,0.0026586533109369047
+num__arp.hw.size,0.002272919686538894
+cat__http.request.version_HTTP/1.0,0.0021391611904587834
+num__tcp.connection.fin,0.002126536036721592
+num__tcp.connection.synack,0.0014022133893334201
+cat__dns.qry.name.len_1.0,0.000957737585552909
+num__dns.qry.qu,0.0005604128010848889
+cat__http.referer_127.0.0.1,0.0005144625791562549
+cat__http.request.method_TRACE,0.00040706511405618005
+cat__http.request.method_POST,0.000397439590645121
+num__mqtt.msgtype,0.00035371962378562516
+num__mqtt.len,0.0002761927105166391
+num__mqtt.hdrflags,0.00014267429740958307
+num__mqtt.conflag.cleansess,9.419877432380045e-05
+num__mqtt.proto_len,8.26902477750676e-05
+num__mqtt.topic_len,5.698446625099918e-05
+num__mqtt.ver,5.2415087338304536e-05
+cat__http.referer_() { _; } >_[$($())] { echo 93e4r0-CVE-2014-6278: true; echo;echo; },4.771922298479313e-05
+num__mqtt.conflags,4.2945498306760245e-05
+cat__mqtt.conack.flags_0x00000000,4.069195324487598e-05
+cat__mqtt.protoname_MQTT,3.712097960681624e-05
+num__dns.retransmission,2.2156011326024864e-06
+cat__mqtt.topic_Temperature_and_Humidity,2.0236577560904037e-06
+cat__http.request.method_OPTIONS,1.9800211027824443e-06
+cat__http.referer_TESTING_PURPOSES_ONLY,1.9269288555603283e-06
+cat__http.request.method_PROPFIND,1.3873918218472861e-06
+cat__http.request.version_-al&_PHPLIB[libdir]=http://cirt.net/rfiinc.txt?? HTTP/1.1,5.599985531208858e-07
+cat__dns.qry.name.len_3.debian.pool.ntp.org,4.678972815283044e-07
+cat__http.request.version_-a HTTP/1.1,3.6562215377932726e-07
+cat__dns.qry.name.len_2.debian.pool.ntp.org,3.2699956003496075e-07
+cat__http.request.version_name=a><input name=i value=XSS>&lt;script>alert('Vulnerable')</script> HTTP/1.1,3.1303067226508817e-07
+cat__dns.qry.name.len_0.debian.pool.ntp.org,2.8982994149020395e-07
+cat__dns.qry.name.len_1.debian.pool.ntp.org,2.3510386809682691e-07
+"cat__http.request.version_script>alert(1)/script><\"" HTTP/1.1",2.2573309071953033e-07
+cat__http.request.version_> HTTP/1.1,2.1059347449533937e-07
+"cat__http.request.version_Src=javascript:alert('Vulnerable')><Img Src=\"" HTTP/1.1",2.0076365712582403e-07
+num__dns.retransmit_request_in,8.063840599117119e-08
+num__dns.retransmit_request,7.188313348340366e-08
+cat__http.request.version_-al&ABSOLUTE_PATH_STUDIP=http://cirt.net/rfiinc.txt?? HTTP/1.1,6.926029271500118e-08
+cat__http.request.method_PUT,5.411438060249147e-08
+cat__http.request.method_SEARCH,4.625318194060324e-08
+cat__dns.qry.name.len_raspberrypi.local,3.686723001043069e-08
+cat__http.request.version_/etc/passwd|?data=Download HTTP/1.1,3.542131983196454e-08
+cat__http.request.version_By Dr HTTP/1.1,3.160820902244805e-08
+cat__mqtt.conack.flags_1461591,1.4272397431556338e-08
+cat__dns.qry.name.len_null-null.local,8.805995321137338e-09
+cat__mqtt.conack.flags_1461073,4.6076592566414004e-09
+num__icmp.unused,0.0
+num__dns.qry.type,0.0
+num__mqtt.msg_decoded_as,0.0
+num__mbtcp.len,0.0
+cat__dns.qry.name.len__googlecast._tcp.local,0.0
+cat__mqtt.conack.flags_1471199,0.0
+cat__mqtt.conack.flags_1471198,0.0
+cat__mqtt.conack.flags_1461589,0.0
+cat__mqtt.conack.flags_1461384,0.0
+cat__mqtt.conack.flags_1461074,0.0
+cat__mqtt.conack.flags_1461383,0.0
+cat__mqtt.conack.flags_1574358,0.0
+cat__mqtt.conack.flags_1574359,0.0

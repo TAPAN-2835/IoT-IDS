@@ -1,0 +1,3 @@
+experiment_id,model,dataset,feature_policy,split,seed,accuracy,precision,recall,f1,macro_f1,weighted_f1,fpr,fnr,training_time,inference_latency,parameters,model_size_mb
+E01_random_forest_binary,RandomForestClassifier,Edge-IIoTset,operational,stratified_random,42,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0,63.19376850128174,0.0014411782531234974,0,12.034218788146973
+E02_random_forest_multiclass,RandomForestClassifier,Edge-IIoTset,operational,stratified_random,42,0.9825222827376751,0.8815675765446781,0.9014961888477685,0.8812782391646541,0.8812782391646541,0.9829009608661851,,,55.50961375236511,0.007032761851157828,0,1588.752137184143

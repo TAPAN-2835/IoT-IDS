@@ -1,0 +1,91 @@
+feature,importance
+cat__mqtt.protoname_0.0,0.16140495995797935
+cat__mqtt.topic_0.0,0.15322709419046474
+cat__mqtt.conack.flags_0.0,0.1465603862377839
+cat__dns.qry.name.len_0.0,0.12144820279673364
+cat__dns.qry.name.len_0,0.08809207933461868
+cat__mqtt.conack.flags_0,0.07491532440097415
+cat__mqtt.topic_0,0.07459754334948454
+cat__mqtt.protoname_0,0.05898916384487812
+num__tcp.flags,0.01761950498027607
+cat__http.request.method_0.0,0.01659730596312779
+cat__http.request.version_0.0,0.016500027926791772
+cat__http.request.method_0,0.011062674631616783
+num__tcp.flags.ack,0.009493625042304483
+num__tcp.checksum,0.007971314251600855
+cat__http.request.version_0,0.006381510809702749
+num__icmp.seq_le,0.006276221953068125
+num__mqtt.len,0.004806583477355942
+num__mqtt.msgtype,0.004229388953573163
+num__udp.stream,0.0036659188568530865
+num__mqtt.hdrflags,0.0031816574780382193
+cat__http.referer_0.0,0.0018774619063978203
+num__tcp.ack_raw,0.0017551046793119628
+cat__mqtt.topic_Temperature_and_Humidity,0.0009538043568688934
+num__mqtt.proto_len,0.0009327659714328937
+num__tcp.seq,0.0008505185297783267
+num__tcp.ack,0.0008450775580998787
+cat__mqtt.conack.flags_0x00000000,0.0008152764303709962
+num__icmp.checksum,0.000695606206815861
+cat__mqtt.protoname_MQTT,0.0006173793401488576
+num__mqtt.conflag.cleansess,0.0005899053780603874
+cat__http.referer_0,0.0005281118999200914
+num__tcp.connection.syn,0.0005078929844452225
+num__mqtt.ver,0.0003969114943087528
+num__tcp.connection.fin,0.00028021807448688687
+num__http.content_length,0.00023960304886781143
+num__mqtt.topic_len,0.0002145091422026526
+cat__http.request.method_GET,0.00021176662823402882
+num__tcp.len,0.00019416719147329555
+num__http.response,0.0001386660224310782
+num__mqtt.conflags,0.00013051998257122529
+num__dns.qry.qu,5.990171658318568e-05
+num__dns.retransmission,3.246474165835113e-05
+num__tcp.connection.synack,2.9619028145402427e-05
+cat__dns.qry.name.len_1.0,1.6061103654089497e-05
+num__arp.hw.size,1.2421994439353155e-05
+cat__http.request.version_HTTP/1.0,1.2029818600478443e-05
+num__arp.opcode,1.0584306866429176e-05
+cat__http.request.method_POST,1.002065673942941e-05
+num__dns.qry.name,5.6530468268526845e-06
+cat__dns.qry.name.len_2.debian.pool.ntp.org,5.10174655299086e-06
+cat__dns.qry.name.len_0.debian.pool.ntp.org,4.6546301377997006e-06
+cat__dns.qry.name.len_3.debian.pool.ntp.org,3.8389442022263575e-06
+cat__dns.qry.name.len_raspberrypi.local,5.432539383540274e-07
+num__dns.retransmit_request_in,3.6885925777953854e-07
+num__dns.retransmit_request,2.5748485543452376e-07
+cat__dns.qry.name.len_null-null.local,1.9037189860146908e-07
+cat__mqtt.conack.flags_1574359,1.8972568469175437e-07
+cat__dns.qry.name.len__googlecast._tcp.local,1.5422448032081538e-07
+cat__mqtt.conack.flags_1461073,6.4370661143155e-08
+cat__mqtt.conack.flags_1471199,3.862124724441551e-08
+cat__mqtt.conack.flags_1461384,3.8534429266162264e-08
+cat__mqtt.conack.flags_1574358,2.418460072520915e-08
+cat__mqtt.conack.flags_1461591,1.2873637138919066e-08
+cat__http.referer_() { _; } >_[$($())] { echo 93e4r0-CVE-2014-6278: true; echo;echo; },1.0497449541622402e-08
+num__icmp.unused,0.0
+num__tcp.connection.rst,0.0
+num__dns.qry.type,0.0
+cat__http.request.method_TRACE,0.0
+cat__http.request.method_PROPFIND,0.0
+cat__http.request.method_SEARCH,0.0
+num__mbtcp.len,0.0
+cat__http.request.method_OPTIONS,0.0
+cat__http.request.method_PUT,0.0
+num__mqtt.msg_decoded_as,0.0
+cat__http.request.version_HTTP/1.1,0.0
+cat__http.request.version_> HTTP/1.1,0.0
+cat__http.request.version_-al&_PHPLIB[libdir]=http://cirt.net/rfiinc.txt?? HTTP/1.1,0.0
+cat__http.request.version_/etc/passwd|?data=Download HTTP/1.1,0.0
+cat__http.request.version_-al&ABSOLUTE_PATH_STUDIP=http://cirt.net/rfiinc.txt?? HTTP/1.1,0.0
+cat__http.referer_127.0.0.1,0.0
+cat__http.referer_TESTING_PURPOSES_ONLY,0.0
+cat__http.request.version_-a HTTP/1.1,0.0
+"cat__http.request.version_script>alert(1)/script><\"" HTTP/1.1",0.0
+cat__http.request.version_name=a><input name=i value=XSS>&lt;script>alert('Vulnerable')</script> HTTP/1.1,0.0
+"cat__http.request.version_Src=javascript:alert('Vulnerable')><Img Src=\"" HTTP/1.1",0.0
+cat__dns.qry.name.len_1.debian.pool.ntp.org,0.0
+cat__mqtt.conack.flags_1471198,0.0
+cat__mqtt.conack.flags_1461589,0.0
+cat__mqtt.conack.flags_1461074,0.0
+cat__mqtt.conack.flags_1461383,0.0

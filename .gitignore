@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+
+# Datasets and Large Data Files
+data/raw/*.csv
+data/interim/*
+data/processed/*
+*.parquet
+
+# Large Model Weights
+models/*.joblib
+models/*.pt
+models/*.keras
+models/*.h5
+results/experiments/**/*.pt
+results/experiments/**/*.joblib
+
+# DO TRACK small JSON configurations and CSV metrics!
+!models/*.json
+!results/audit/*.csv
+!results/audit/*.json
+!results/experiments/**/*.json
+!results/experiments/**/*.csv
+!results/experiment_registry.csv
+
+# Jupyter
+.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+
+# OS generated files
+.DS_Store
+Thumbs.db
