@@ -7,8 +7,8 @@ logger = setup_logger("phase3_binary_pipeline")
 def main():
     logger.info("Starting Phase 3: Binary DL Models...")
     
-    # E03: 1D-CNN
-    train_dl_model("E03_cnn1d_binary", "1D-CNN", "Attack_label", "binary")
+    # E03: 1D-CNN (Completed)
+    # train_dl_model("E03_cnn1d_binary", "1D-CNN", "Attack_label", "binary")
     
     # E04: GRU
     train_dl_model("E04_gru_binary", "GRU", "Attack_label", "binary")

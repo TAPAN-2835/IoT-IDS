@@ -41,3 +41,13 @@ results/experiments/**/*.joblib
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Live pipeline / dashboard runtime state — regenerated automatically by
+# pipeline_monitor.py and src/utils.setup_logger() on every run, not source.
+pipeline.log
+*.log
+pipeline_status.json
+training_progress.json
+
+# Ad-hoc stdout/stderr redirects from background runs (e.g. nohup ... > x.out)
+*.out

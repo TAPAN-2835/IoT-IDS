@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 import random
 import numpy as np
+import torch
 
 # ==========================================
 # REPRODUCIBILITY CONFIGURATION
@@ -13,6 +14,9 @@ TORCH_SEED = 42
 def set_seeds(seed=GLOBAL_SEED):
     random.seed(seed)
     np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 # ==========================================
 # DATA CONFIGURATION
@@ -29,6 +33,11 @@ MODELS_DIR = BASE_DIR / "models"
 AUDIT_DIR = RESULTS_DIR / "audit"
 EXPERIMENTS_DIR = RESULTS_DIR / "experiments"
 FIGURES_DIR = RESULTS_DIR / "figures"
+
+# ==========================================
+# DATA LOADING CONFIGURATION
+# ==========================================
+CHUNK_SIZE = 50_000  # Rows per chunk for memory-safe CSV reading
 
 DEFAULT_TARGET_COL = "Attack_label"
 MULTICLASS_TARGET_COL = "Attack_type"

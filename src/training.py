@@ -14,9 +14,26 @@ from src.models import CNN1D, GRUBaseline, CNN_GRU
 
 logger = setup_logger(__name__)
 
+PROGRESS_PATH = cfg.BASE_DIR / "training_progress.json"
+
+
+def _write_progress(**kwargs):
+    """Persist live epoch/loss progress to disk so the dashboard can poll it."""
+    try:
+        payload = {"updated_at": time.strftime("%H:%M:%S"), **kwargs}
+        tmp_path = PROGRESS_PATH.with_suffix(".tmp")
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f)
+        os.replace(tmp_path, PROGRESS_PATH)
+    except Exception as e:
+        logger.warning(f"Could not write training_progress.json: {e}")
+
+
 def train_dl_model(experiment_id, model_name, target_col, task_type):
     logger.info(f"Starting {experiment_id} using {model_name} on {target_col}")
     cfg.set_seeds()
+    _write_progress(experiment_id=experiment_id, model=model_name, phase="loading_data",
+                     epoch=0, total_epochs=cfg.EPOCHS)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
@@ -38,10 +55,15 @@ def train_dl_model(experiment_id, model_name, target_col, task_type):
     if task_type == "binary":
         num_classes = 1
         criterion = nn.BCEWithLogitsLoss()
-        # Normal is class 7 in label_mapping.json. Everything else is Attack.
-        y_train_bin = (y_train != 7).astype(np.float32)
-        y_val_bin = (y_val != 7).astype(np.float32)
-        y_test_bin = (y_test != 7).astype(np.float32)
+        if target_col == "Attack_label":
+            y_train_bin = y_train.astype(np.float32)
+            y_val_bin = y_val.astype(np.float32)
+            y_test_bin = y_test.astype(np.float32)
+        else:
+            # Normal is class 7 in label_mapping.json. Everything else is Attack.
+            y_train_bin = (y_train != 7).astype(np.float32)
+            y_val_bin = (y_val != 7).astype(np.float32)
+            y_test_bin = (y_test != 7).astype(np.float32)
         
         y_train_t = torch.tensor(y_train_bin).unsqueeze(1)
         y_val_t = torch.tensor(y_val_bin).unsqueeze(1)
@@ -76,11 +98,13 @@ def train_dl_model(experiment_id, model_name, target_col, task_type):
     # Training Loop with Early Stopping
     logger.info("Training Model...")
     t0 = time.time()
-    
+
     best_val_loss = float('inf')
     patience_counter = 0
     best_model_path = exp_dir / "best_model.pt"
-    
+    _write_progress(experiment_id=experiment_id, model=model_name, phase="training",
+                     epoch=0, total_epochs=cfg.EPOCHS, elapsed_s=0)
+
     for epoch in range(cfg.EPOCHS):
         model.train()
         train_loss = 0
@@ -106,19 +130,29 @@ def train_dl_model(experiment_id, model_name, target_col, task_type):
         val_loss /= len(val_loader)
         
         logger.info(f"Epoch {epoch+1}/{cfg.EPOCHS} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
-        
+
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0
             torch.save(model.state_dict(), best_model_path)
         else:
             patience_counter += 1
-            if patience_counter >= cfg.EARLY_STOPPING_PATIENCE:
-                logger.info(f"Early stopping triggered at epoch {epoch+1}")
-                break
-                
+
+        _write_progress(experiment_id=experiment_id, model=model_name, phase="training",
+                         epoch=epoch + 1, total_epochs=cfg.EPOCHS,
+                         train_loss=round(train_loss, 6), val_loss=round(val_loss, 6),
+                         best_val_loss=round(best_val_loss, 6),
+                         patience_counter=patience_counter, patience_limit=cfg.EARLY_STOPPING_PATIENCE,
+                         elapsed_s=round(time.time() - t0, 1))
+
+        if patience_counter >= cfg.EARLY_STOPPING_PATIENCE:
+            logger.info(f"Early stopping triggered at epoch {epoch+1}")
+            break
+
     training_time = time.time() - t0
-    
+    _write_progress(experiment_id=experiment_id, model=model_name, phase="evaluating",
+                     epoch=epoch + 1, total_epochs=cfg.EPOCHS, elapsed_s=round(training_time, 1))
+
     # Load best model for inference
     model.load_state_dict(torch.load(best_model_path))
     if model_name == "CNN-GRU":
@@ -145,7 +179,10 @@ def train_dl_model(experiment_id, model_name, target_col, task_type):
     y_pred = np.array(all_preds).squeeze()
     
     if task_type == "binary":
-        y_test_bin = (y_test != 7).astype(np.float32)
+        if target_col == "Attack_label":
+            y_test_bin = y_test.astype(np.float32)
+        else:
+            y_test_bin = (y_test != 7).astype(np.float32)
         accuracy = accuracy_score(y_test_bin, y_pred)
         precision, recall, f1, _ = precision_recall_fscore_support(y_test_bin, y_pred, average="binary", zero_division=0)
         macro_f1 = f1_score(y_test_bin, y_pred, average="macro", zero_division=0)
@@ -199,6 +236,9 @@ def train_dl_model(experiment_id, model_name, target_col, task_type):
     
     save_json(new_record, exp_dir / "experiment_record.json")
     logger.info(f"Finished {experiment_id}. Accuracy: {accuracy:.4f}")
+    _write_progress(experiment_id=experiment_id, model=model_name, phase="complete",
+                     epoch=epoch + 1, total_epochs=cfg.EPOCHS, elapsed_s=round(training_time, 1),
+                     accuracy=round(float(accuracy), 4))
 
 if __name__ == "__main__":
     import sys

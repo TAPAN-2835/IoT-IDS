@@ -1,0 +1,20 @@
+{
+    "experiment_id": "E08_cnn_gru_multiclass",
+    "model": "CNN-GRU",
+    "dataset": "Edge-IIoTset",
+    "feature_policy": "operational",
+    "split": "stratified_random",
+    "seed": 42,
+    "accuracy": 0.9474496892282828,
+    "precision": 0.767303253642518,
+    "recall": 0.6599454959467124,
+    "f1": 0.6444642512393857,
+    "macro_f1": 0.6444642512393857,
+    "weighted_f1": 0.9397776341403539,
+    "fpr": null,
+    "fnr": null,
+    "training_time": 469.6835482120514,
+    "inference_latency": 0.04078185674956766,
+    "parameters": 21583,
+    "model_size_mb": 0.08751392364501953
+}

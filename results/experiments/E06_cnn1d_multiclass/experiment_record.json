@@ -1,0 +1,20 @@
+{
+    "experiment_id": "E06_cnn1d_multiclass",
+    "model": "1D-CNN",
+    "dataset": "Edge-IIoTset",
+    "feature_policy": "operational",
+    "split": "stratified_random",
+    "seed": 42,
+    "accuracy": 0.9511056503675488,
+    "precision": 0.7762700461263193,
+    "recall": 0.6999552426881598,
+    "f1": 0.7036456323774906,
+    "macro_f1": 0.7036456323774906,
+    "weighted_f1": 0.9464143406796643,
+    "fpr": null,
+    "fnr": null,
+    "training_time": 426.311154127121,
+    "inference_latency": 0.00969560532357008,
+    "parameters": 46799,
+    "model_size_mb": 0.18315601348876953
+}

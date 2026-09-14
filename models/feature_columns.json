@@ -56,7 +56,6 @@
         "cat__http.request.version_0",
         "cat__http.request.version_0.0",
         "cat__http.request.version_> HTTP/1.1",
-        "cat__http.request.version_By Dr HTTP/1.1",
         "cat__http.request.version_HTTP/1.0",
         "cat__http.request.version_HTTP/1.1",
         "cat__http.request.version_Src=javascript:alert('Vulnerable')><Img Src=\\\" HTTP/1.1",

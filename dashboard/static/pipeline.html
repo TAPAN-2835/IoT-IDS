@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IoT-IDS · Live Pipeline Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:          #060b14;
+      --surface:     #0c1524;
+      --surface2:    #111e30;
+      --border:      #1a2d42;
+      --text:        #cdd9e5;
+      --muted:       #5a7490;
+      --cyan:        #00d4ff;
+      --blue:        #4d9fff;
+      --green:       #2dde98;
+      --yellow:      #f5c842;
+      --orange:      #ff8c42;
+      --red:         #ff4f6d;
+      --purple:      #b47eff;
+      --glow-cyan:   0 0 20px rgba(0,212,255,0.25);
+      --glow-green:  0 0 20px rgba(45,222,152,0.25);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* ── ANIMATED BG GRID ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(6,11,20,0.9);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      display: grid; place-items: center;
+      font-size: 18px;
+      box-shadow: var(--glow-cyan);
+    }
+    .logo-text { font-size: 15px; font-weight: 600; color: #fff; }
+    .logo-sub  { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+    /* ── REFRESH BUTTON ── */
+    #refresh-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 18px; border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(77,159,255,0.15));
+      border: 1px solid rgba(0,212,255,0.4);
+      color: var(--cyan); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    #refresh-btn:hover {
+      background: linear-gradient(135deg, rgba(0,212,255,0.28), rgba(77,159,255,0.28));
+      box-shadow: 0 0 16px rgba(0,212,255,0.3);
+      transform: translateY(-1px);
+    }
+    #refresh-btn:active { transform: translateY(0); }
+    #refresh-btn.spinning .btn-icon { animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #countdown {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--muted);
+      min-width: 32px; text-align: center;
+    }
+
+    #status-badge {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+      background: rgba(45,222,152,0.12);
+      border: 1px solid rgba(45,222,152,0.3);
+      color: var(--green);
+    }
+    #status-badge .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    #clock {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--muted);
+      background: var(--surface);
+      padding: 5px 12px; border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      position: relative; z-index: 1;
+      max-width: 1200px; margin: 0 auto;
+      padding: 40px 24px 80px;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 28px;
+    }
+
+    /* ── SECTION LABELS ── */
+    .section-title {
+      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── STEP CARDS ── */
+    .steps-col { display: flex; flex-direction: column; gap: 10px; }
+
+    .step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      position: relative; overflow: hidden;
+    }
+    .step-card.active  { border-color: var(--cyan); box-shadow: var(--glow-cyan); }
+    .step-card.done    { border-color: rgba(45,222,152,0.4); }
+    .step-card.error   { border-color: rgba(255,79,109,0.4); }
+
+    /* shimmer on active card */
+    .step-card.active::after {
+      content: '';
+      position: absolute; top: 0; left: -100%;
+      width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0,212,255,0.04), transparent);
+      animation: shimmer 2s linear infinite;
+    }
+
+    .step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .step-icon { font-size: 20px; flex-shrink: 0; }
+    .step-name { font-size: 13px; font-weight: 600; color: #fff; }
+    .step-label { font-size: 12px; color: var(--muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+
+    .step-status-badge {
+      margin-left: auto; flex-shrink: 0;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 3px 10px; border-radius: 20px;
+      text-transform: uppercase;
+    }
+    .badge-pending     { background: rgba(90,116,144,0.2);  color: var(--muted); }
+    .badge-downloading,
+    .badge-installing,
+    .badge-running,
+    .badge-training    { background: rgba(0,212,255,0.12);  color: var(--cyan);  }
+    .badge-complete    { background: rgba(45,222,152,0.12); color: var(--green); }
+    .badge-error       { background: rgba(255,79,109,0.12); color: var(--red);   }
+
+    /* Progress bar */
+    .progress-track {
+      height: 6px; background: var(--surface2);
+      border-radius: 999px; overflow: hidden; margin-top: 4px;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 999px;
+      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+      position: relative;
+    }
+    .fill-cyan   { background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+    .fill-green  { background: linear-gradient(90deg, #1ba870, var(--green)); }
+    .fill-yellow { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .fill-purple { background: linear-gradient(90deg, #7b4fff, var(--purple)); }
+    .fill-gray   { background: var(--border); }
+
+    /* animated stripe on running bars */
+    .progress-fill.running::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+      background-size: 200% 100%;
+      animation: stripe 1.5s linear infinite;
+    }
+
+    .pct-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--muted);
+      text-align: right; margin-top: 4px;
+    }
+
+    /* ── RIGHT COLUMN ── */
+    .right-col { display: flex; flex-direction: column; gap: 24px; }
+
+    /* ── EXPERIMENT TABLE ── */
+    .exp-table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .exp-table-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      font-size: 10px; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--muted);
+      padding: 10px 16px; text-align: left;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 16px; font-size: 12px;
+      border-bottom: 1px solid rgba(26,45,66,0.5);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .exp-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--blue);
+    }
+    .exp-model { color: #fff; font-weight: 500; }
+    .metric-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--cyan);
+    }
+    .metric-na { color: var(--muted); }
+
+    /* inline mini-bar in table */
+    .mini-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .mini-bar { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+    .mini-fill { height: 100%; border-radius: 2px; transition: width 0.8s; }
+
+    /* ── GPU STATUS CARD ── */
+    .gpu-card {
+      background: linear-gradient(135deg, rgba(77,159,255,0.08), rgba(0,212,255,0.04));
+      border: 1px solid rgba(77,159,255,0.25);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex; gap: 20px; align-items: center;
+    }
+    .gpu-icon { font-size: 36px; }
+    .gpu-detail { flex: 1; }
+    .gpu-name { font-size: 14px; font-weight: 700; color: #fff; }
+    .gpu-spec { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .gpu-vram-bar {
+      height: 8px; background: var(--surface2);
+      border-radius: 4px; overflow: hidden; margin-top: 10px;
+    }
+    .gpu-vram-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      border-radius: 4px; transition: width 1s;
+    }
+    .gpu-vram-text { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+
+    /* ── LOG TAIL ── */
+    .log-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .log-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .log-body {
+      padding: 14px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      height: 160px;
+      overflow-y: auto;
+      line-height: 1.7;
+    }
+
+    /* ── MAXIMIZED LOG PANEL ── */
+    .log-backdrop {
+      display: none;
+      position: fixed; inset: 0; z-index: 999;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(2px);
+    }
+    .log-backdrop.show { display: block; }
+    .log-card.maximized {
+      position: fixed;
+      top: 5vh; left: 5vw; right: 5vw; bottom: 5vh;
+      z-index: 1000;
+      display: flex; flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .log-card.maximized .log-body {
+      flex: 1 1 auto;
+      height: auto;
+      font-size: 13px;
+      line-height: 1.9;
+    }
+    #log-max-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.15s;
+    }
+    #log-max-btn:hover {
+      color: var(--cyan);
+      border-color: rgba(0,212,255,0.4);
+      background: rgba(0,212,255,0.08);
+    }
+    .log-line.info    { color: var(--text); }
+    .log-line.success { color: var(--green); }
+    .log-line.warn    { color: var(--yellow); }
+    .log-line.error   { color: var(--red); }
+    .log-line.dim     { color: var(--muted); }
+    .log-time { color: var(--muted); margin-right: 8px; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+    @keyframes shimmer {
+      0%   { left: -100%; }
+      100% { left: 200%; }
+    }
+    @keyframes stripe {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in { animation: fadeIn 0.4s ease both; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-icon">🛡️</div>
+    <div>
+      <div class="logo-text">IoT-IDS Pipeline Monitor</div>
+      <div class="logo-sub">Live Training Dashboard</div>
+    </div>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <div id="status-badge">
+      <div class="dot"></div>
+      <span id="live-label">Connecting…</span>
+    </div>
+    <button id="refresh-btn" onclick="manualRefresh()">
+      <span class="btn-icon" style="font-size:15px;">↻</span>
+      <span>Refresh</span>
+      <span id="countdown" title="Auto-refreshes every 2s">2s</span>
+    </button>
+    <div id="clock">--:--:--</div>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT: Pipeline Steps -->
+  <div>
+    <div class="section-title">Pipeline Steps</div>
+    <div class="steps-col" id="steps-col">
+      <div style="color:var(--muted); font-size:13px; padding:20px; text-align:center;">
+        Loading…
+      </div>
+    </div>
+
+    <!-- GPU Card -->
+    <div style="margin-top: 24px;">
+      <div class="section-title">Hardware</div>
+      <div class="gpu-card" id="gpu-card">
+        <div class="gpu-icon">🎮</div>
+        <div class="gpu-detail">
+          <div class="gpu-name" id="gpu-name">Detecting GPU…</div>
+          <div class="gpu-spec" id="gpu-spec">CUDA driver loading</div>
+          <div class="gpu-vram-bar">
+            <div class="gpu-vram-fill" id="gpu-vram-fill" style="width:0%"></div>
+          </div>
+          <div class="gpu-vram-text" id="gpu-vram-text">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-col">
+
+    <!-- Experiment Table -->
+    <div>
+      <div class="section-title">Experiments</div>
+      <div class="exp-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Model</th>
+              <th>Task</th>
+              <th>Status</th>
+              <th>Accuracy</th>
+              <th>Macro F1</th>
+            </tr>
+          </thead>
+          <tbody id="exp-tbody">
+            <tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Log Tail -->
+    <div>
+      <div class="section-title">Activity Log</div>
+      <div class="log-card" id="log-card">
+        <div class="log-header">
+          <span style="font-size:13px; font-weight:600; color:#fff;">Live Events</span>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:11px; color:var(--muted);" id="log-update">–</span>
+            <button id="log-max-btn" onclick="toggleLogMaximize()" title="Maximize">
+              <span id="log-max-icon">⤢</span>
+              <span id="log-max-label">Maximize</span>
+            </button>
+          </div>
+        </div>
+        <div class="log-body" id="log-body">
+          <div class="log-line dim">Waiting for pipeline_monitor.py output…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<div class="log-backdrop" id="log-backdrop" onclick="toggleLogMaximize()"></div>
+
+<script>
+const POLL_MS = 2000;
+let prevStatus = null;
+const logLines = [];
+let trainingLogLines = [];
+const MAX_LOG = 80;
+
+function now() {
+  return new Date().toLocaleTimeString('en-GB');
+}
+
+function addLog(msg, type = 'info') {
+  logLines.push({ t: now(), msg, type });
+  if (logLines.length > MAX_LOG) logLines.shift();
+  renderLog();
+}
+
+function renderLog() {
+  const el = document.getElementById('log-body');
+  const localHTML = logLines.slice().reverse().map(l =>
+    `<div class="log-line ${l.type}"><span class="log-time">${l.t}</span>${escHtml(l.msg)}</div>`
+  ).join('');
+  const trainingHTML = trainingLogLines.length
+    ? '<div class="log-line dim" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">--- LIVE TRAINING LOGS (pipeline.log) ---</div>'
+      + trainingLogLines.slice().reverse().map(l =>
+          `<div class="log-line info">${escHtml(l)}</div>`
+        ).join('')
+    : '<div class="log-line dim" style="margin-top:8px;">Waiting for pipeline.log…</div>';
+  el.innerHTML = localHTML + trainingHTML;
+  document.getElementById('log-update').textContent = `Updated ${now()}`;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── LOG PANEL MAXIMIZE ──
+// The log card normally lives inside <main>, which establishes its own
+// stacking context (position:relative + z-index:1). A fixed-position
+// descendant can never out-rank an element OUTSIDE that context no matter
+// its own z-index, so the backdrop (a sibling of <main>) would otherwise
+// render on top of the "maximized" card instead of behind it. Reparenting
+// the card to <body> while maximized sidesteps that entirely.
+let logMaximized = false;
+let logCardHome = null; // { parent, next } to restore original position
+function toggleLogMaximize() {
+  const card = document.getElementById('log-card');
+  logMaximized = !logMaximized;
+
+  if (logMaximized) {
+    logCardHome = { parent: card.parentNode, next: card.nextSibling };
+    document.body.appendChild(card);
+  } else if (logCardHome) {
+    logCardHome.parent.insertBefore(card, logCardHome.next);
+    logCardHome = null;
+  }
+
+  card.classList.toggle('maximized', logMaximized);
+  document.getElementById('log-backdrop').classList.toggle('show', logMaximized);
+  document.getElementById('log-max-icon').textContent = logMaximized ? '⤡' : '⤢';
+  document.getElementById('log-max-label').textContent = logMaximized ? 'Minimize' : 'Maximize';
+  document.getElementById('log-max-btn').title = logMaximized ? 'Minimize' : 'Maximize';
+  if (logMaximized) {
+    document.getElementById('log-body').scrollTop = 0;
+  }
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && logMaximized) toggleLogMaximize();
+});
+
+function colorForPct(pct) {
+  if (pct === 100) return 'fill-green';
+  if (pct > 60)   return 'fill-cyan';
+  if (pct > 30)   return 'fill-yellow';
+  return 'fill-gray';
+}
+
+function badgeClass(status) {
+  const map = {
+    pending:'badge-pending', downloading:'badge-downloading',
+    installing:'badge-installing', running:'badge-running',
+    training:'badge-training', complete:'badge-complete', error:'badge-error'
+  };
+  return map[status] || 'badge-pending';
+}
+
+function stepCardClass(status) {
+  if (status === 'complete') return 'step-card done';
+  if (['downloading','installing','running','training'].includes(status)) return 'step-card active';
+  if (status === 'error') return 'step-card error';
+  return 'step-card';
+}
+
+function renderSteps(steps) {
+  const col = document.getElementById('steps-col');
+  col.innerHTML = steps.map((s, i) => {
+    const isRunning = ['downloading','installing','running','training'].includes(s.status);
+    const fillClass = s.pct === 100 ? 'fill-green' : isRunning ? 'fill-cyan running' : 'fill-gray';
+    return `
+      <div class="${stepCardClass(s.status)} fade-in" style="animation-delay:${i*40}ms">
+        <div class="step-header">
+          <span class="step-icon">${s.icon}</span>
+          <div>
+            <div class="step-name">${escHtml(s.label)}</div>
+            <div class="step-label">${escHtml(s.label_detail||s.label||'')}</div>
+          </div>
+          <span class="step-status-badge ${badgeClass(s.status)}">${s.status}</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill ${fillClass}" style="width:${s.pct||0}%"></div>
+        </div>
+        <div class="pct-text">${s.pct||0}%</div>
+      </div>`;
+  }).join('');
+}
+
+function renderExperiments(experiments) {
+  const tbody = document.getElementById('exp-tbody');
+  if (!experiments || !experiments.length) return;
+
+  const phaseColors = { 2: 'var(--purple)', 3: 'var(--cyan)' };
+
+  tbody.innerHTML = experiments.map(e => {
+    const acc  = e.metrics?.accuracy  != null ? (e.metrics.accuracy * 100).toFixed(2) + '%' : null;
+    const mf1  = e.metrics?.macro_f1  != null ? e.metrics.macro_f1.toFixed(4)              : null;
+    const task = e.id?.includes('multiclass') ? 'Multiclass' : 'Binary';
+    const pct  = e.pct || 0;
+
+    const statusColor = e.status === 'complete' ? 'var(--green)'
+                      : e.status === 'training' ? 'var(--cyan)'
+                      : 'var(--muted)';
+    const fillColor = e.status === 'complete' ? 'var(--green)' : 'var(--cyan)';
+
+    return `<tr>
+      <td><span class="exp-id">${escHtml(e.id||'')}</span></td>
+      <td><span class="exp-model">${escHtml(e.label||'')}</span></td>
+      <td style="color:var(--muted)">${task}</td>
+      <td>
+        <div class="mini-bar-wrap">
+          <div class="mini-bar"><div class="mini-fill" style="width:${pct}%; background:${fillColor}"></div></div>
+          <span style="font-size:11px; color:${statusColor}; white-space:nowrap;">${e.status}</span>
+        </div>
+        ${e.detail ? `<div style="font-size:10.5px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:3px;">${escHtml(e.detail)}</div>` : ''}
+      </td>
+      <td>${acc ? `<span class="metric-val">${acc}</span>` : '<span class="metric-na">—</span>'}</td>
+      <td>${mf1 ? `<span class="metric-val">${mf1}</span>` : '<span class="metric-na">—</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function detectChanges(prev, curr) {
+  if (!prev) return;
+  const steps = curr.steps || [];
+  const prevSteps = (prev.steps || []).reduce((m,s) => (m[s.id]=s, m), {});
+  steps.forEach(s => {
+    const p = prevSteps[s.id];
+    if (!p) return;
+    if (p.status !== s.status) {
+      if (s.status === 'complete')
+        addLog(`✓ ${s.label} complete`, 'success');
+      else if (['running','training','downloading'].includes(s.status))
+        addLog(`⟳ ${s.label} started`, 'info');
+    }
+    if (p.pct !== s.pct && s.pct > 0 && s.pct < 100 && s.pct % 10 === 0)
+      addLog(`  ${s.label}: ${s.pct}%`, 'dim');
+  });
+
+  const exps = curr.experiments || [];
+  const prevExps = (prev.experiments || []).reduce((m,e) => (m[e.id]=e, m), {});
+  exps.forEach(e => {
+    const p = prevExps[e.id];
+    if (!p) return;
+    if (p.status !== e.status && e.status === 'complete')
+      addLog(`✓ ${e.id} finished`, 'success');
+    if (p.detail !== e.detail && e.detail)
+      addLog(`  ${e.id}: ${e.detail}`, e.status === 'complete' ? 'success' : 'info');
+  });
+}
+
+function updateGPU(steps) {
+  const torch = (steps||[]).find(s => s.id === 'torch');
+  const gpuName = document.getElementById('gpu-name');
+  const gpuSpec = document.getElementById('gpu-spec');
+  const gpuFill = document.getElementById('gpu-vram-fill');
+  const gpuText = document.getElementById('gpu-vram-text');
+
+  if (torch?.status === 'complete') {
+    gpuName.textContent = 'NVIDIA GeForce RTX 4060 Laptop';
+    gpuSpec.textContent = 'CUDA 12.8  ·  8 GB VRAM  ·  Active';
+    gpuFill.style.width = '2%';
+    gpuText.textContent = '149 MiB / 8188 MiB used';
+    document.getElementById('gpu-card').style.borderColor = 'rgba(45,222,152,0.35)';
+  } else if (torch?.status === 'installing') {
+    gpuName.textContent = 'NVIDIA GeForce RTX 4060 Laptop';
+    gpuSpec.textContent = 'Installing CUDA-enabled PyTorch (2.75 GB)…';
+    gpuFill.style.width = '0%';
+  }
+}
+
+async function fetchStatus() {
+  try {
+    const res = await fetch('/api/pipeline-status');
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+
+    // Update clock
+    document.getElementById('clock').textContent = data.updated_at || now();
+
+    // Status badge
+    const anyRunning = (data.steps||[]).some(s =>
+      ['downloading','installing','running','training'].includes(s.status));
+    const allDone = (data.steps||[]).every(s => s.status === 'complete');
+    document.getElementById('live-label').textContent =
+      allDone ? 'All Complete ✓' : anyRunning ? 'Pipeline Running' : 'Idle';
+
+    detectChanges(prevStatus, data);
+    prevStatus = data;
+
+    // Patch step labels for display
+    const steps = (data.steps||[]).map(s => ({...s, label_detail: s.label, label: s.label}));
+    renderSteps(steps);
+    renderExperiments(data.experiments);
+    updateGPU(data.steps);
+
+  } catch(e) {
+    document.getElementById('live-label').textContent = 'Offline';
+    addLog('⚠ Cannot reach /api/pipeline-status — is the dashboard running?', 'warn');
+  }
+}
+
+// ── COUNTDOWN TIMER ──
+let countdown = 2;
+setInterval(() => {
+  document.getElementById('clock').textContent = now();
+  countdown--;
+  if (countdown <= 0) countdown = 2;
+  const cd = document.getElementById('countdown');
+  if (cd) cd.textContent = countdown + 's';
+}, 1000);
+
+// ── MANUAL REFRESH ──
+function manualRefresh() {
+  countdown = 2;
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  btn.disabled = true;
+  fetchStatus().finally(() => {
+    btn.classList.remove('spinning');
+    btn.disabled = false;
+    addLog('Manual refresh triggered', 'dim');
+  });
+}
+
+// make fetchStatus return promise
+const _origFetch = fetchStatus;
+window.fetchStatus = async function() {
+  return _origFetch();
+};
+
+// Init log
+addLog('Pipeline monitor initialised — polling every 2s', 'dim');
+addLog('Tip: Click Refresh button anytime for instant update', 'warn');
+
+// Start polling
+fetchStatus();
+setInterval(fetchStatus, POLL_MS);
+
+// ── FETCH LIVE LOGS ──
+async function fetchLogs() {
+  try {
+    const res = await fetch('/api/logs');
+    if (res.ok) {
+      const data = await res.json();
+      trainingLogLines = data.logs || [];
+      renderLog();
+    }
+  } catch (e) {}
+}
+
+fetchLogs();
+setInterval(fetchLogs, 3000);
+
+</script>
+</body>
+</html>

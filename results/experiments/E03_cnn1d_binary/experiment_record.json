@@ -1,0 +1,20 @@
+{
+    "experiment_id": "E03_cnn1d_binary",
+    "model": "1D-CNN",
+    "dataset": "Edge-IIoTset",
+    "feature_policy": "operational",
+    "split": "stratified_random",
+    "seed": 42,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "macro_f1": 1.0,
+    "weighted_f1": 1.0,
+    "fpr": 0.0,
+    "fnr": 0.0,
+    "training_time": 362.73089265823364,
+    "inference_latency": 0.008812753030465612,
+    "parameters": 46337,
+    "model_size_mb": 0.18144702911376953
+}
