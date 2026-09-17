@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Mastery Study Guide | IoT-IDS</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-sidebar: #0d1322;
+      --bg-card: rgba(18, 26, 44, 0.75);
+      --bg-card-hover: rgba(26, 38, 64, 0.9);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.4);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --accent-primary: #6366f1;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #a855f7;
+      
+      --font-heading: 'Plus Jakarta Sans', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 40%);
+      background-attachment: fixed;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 280px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      padding: 24px 18px;
+      overflow-y: auto;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #fff;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      list-style: none;
+    }
+
+    .nav-item a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .nav-item a:hover, .nav-item a.active {
+      background: rgba(99, 102, 241, 0.12);
+      color: #fff;
+      border-left: 3px solid var(--accent-primary);
+    }
+
+    .nav-item a i {
+      width: 18px;
+      text-align: center;
+      font-size: 0.95rem;
+    }
+
+    .sidebar-footer {
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .print-btn {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .print-btn:hover {
+      background: var(--accent-primary);
+      border-color: transparent;
+    }
+
+    /* Main Content Area */
+    .content-area {
+      margin-left: 280px;
+      flex: 1;
+      padding: 40px 48px 80px;
+      max-width: 1100px;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(6, 182, 212, 0.1));
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 40px;
+      position: relative;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .main-title {
+      font-family: var(--font-heading);
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+
+    .main-desc {
+      font-size: 1rem;
+      color: var(--text-muted);
+      max-width: 800px;
+    }
+
+    /* Section Cards */
+    .study-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 36px;
+      scroll-margin-top: 24px;
+    }
+
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .section-title i {
+      color: var(--accent-cyan);
+    }
+
+    /* Code & File Cards */
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .file-card {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s;
+    }
+
+    .file-card:hover {
+      border-color: var(--accent-cyan);
+      transform: translateY(-2px);
+    }
+
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--accent-cyan);
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .file-desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .file-say {
+      background: rgba(255, 255, 255, 0.04);
+      border-left: 3px solid var(--accent-emerald);
+      padding: 10px 12px;
+      font-size: 0.84rem;
+      color: #e2e8f0;
+      border-radius: 0 6px 6px 0;
+    }
+
+    /* Concept Callouts */
+    .callout {
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .callout-title {
+      font-family: var(--font-heading);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #a5b4fc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .callout p {
+      font-size: 0.9rem;
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+
+    /* Tables */
+    .table-box {
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 12px 16px;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.6px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Dialogue Speech Box */
+    .speech-quote {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin: 16px 0;
+      position: relative;
+    }
+
+    .speech-quote-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .speech-quote-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .speech-quote-text {
+      font-size: 0.94rem;
+      color: #e2e8f0;
+      line-height: 1.65;
+    }
+
+    .speech-quote-text strong {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .copy-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+    /* Q&A Cards */
+    .qa-block {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .qa-q {
+      font-family: var(--font-heading);
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .qa-ans {
+      background: rgba(16, 185, 129, 0.06);
+      border-left: 3px solid var(--accent-emerald);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.9rem;
+      color: #e2e8f0;
+      line-height: 1.6;
+    }
+
+    /* Print View */
+    @media print {
+      body { background: #fff !important; color: #0f172a !important; }
+      .sidebar { display: none !important; }
+      .content-area { margin-left: 0 !important; padding: 0 !important; width: 100% !important; }
+      .study-section, .file-card, .qa-block, .table-box {
+        background: #fff !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        page-break-inside: avoid;
+      }
+      .speech-quote { background: #f8fafc !important; border: 1px solid #e2e8f0 !important; }
+      .speech-quote-text, td, .file-desc, .qa-ans { color: #1e293b !important; }
+      .main-title, .section-title, .qa-q { color: #0f172a !important; }
+      .copy-btn { display: none !important; }
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .content-area { margin-left: 0; padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div>
+      <div class="brand">
+        <div class="brand-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+        <span>Study Guide</span>
+      </div>
+      <ul class="nav-menu">
+        <li class="nav-item"><a href="#summary"><i class="fa-solid fa-layer-group"></i> 1. Overview & Flow</a></li>
+        <li class="nav-item"><a href="#code-walk"><i class="fa-solid fa-code"></i> 2. Code Walkthrough</a></li>
+        <li class="nav-item"><a href="#best-model"><i class="fa-solid fa-microchip"></i> 3. best_model.pt Deep Dive</a></li>
+        <li class="nav-item"><a href="#iot-deployment"><i class="fa-solid fa-network-wired"></i> 4. IoT Deployment</a></li>
+        <li class="nav-item"><a href="#parameters"><i class="fa-solid fa-sliders"></i> 5. Model Parameters</a></li>
+        <li class="nav-item"><a href="#metrics"><i class="fa-solid fa-chart-pie"></i> 6. Results & Metrics</a></li>
+        <li class="nav-item"><a href="#speech-script"><i class="fa-solid fa-microphone"></i> 7. 5-Min Script</a></li>
+        <li class="nav-item"><a href="#faculty-qa"><i class="fa-solid fa-shield-halved"></i> 8. Defense Q&A</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <button class="print-btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Print / Save as PDF</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="content-area">
+    
+    <div class="header-banner">
+      <span class="badge-pill"><i class="fa-solid fa-book-bookmark"></i> Revision & Defense Master Doc</span>
+      <h1 class="main-title">Explainable Hybrid Deep Learning IDS for IoT Networks</h1>
+      <p class="main-desc">Complete conceptual guide covering architectural decisions, code locations, deployment mechanisms, parameter math, and faculty defense scripts.</p>
+    </div>
+
+    <!-- Section 1: Overview -->
+    <section class="study-section" id="summary">
+      <h2 class="section-title"><i class="fa-solid fa-layer-group"></i> 1. Core Project Flow & The 3 Pillars</h2>
+      
+      <div class="callout">
+        <div class="callout-title"><i class="fa-solid fa-bullseye"></i> High-Level Pipeline Flow</div>
+        <p>Raw Edge-IIoTset Data (61 features, 15 attacks) ➔ <strong>Zero-Leakage Filter</strong> (Drop IP, MAC, Ports, Time) ➔ <strong>Benchmark Pipeline</strong> (RF, 1D-CNN, GRU, CNN-GRU) ➔ <strong>Flagship CNN-GRU</strong> (21K params, 86 KB) ➔ <strong>SHAP XAI Engine</strong> (Game-Theoretic MQTT Attribution) ➔ <strong>Real-Time Gateway Alert</strong>.</p>
+      </div>
+
+      <div class="file-grid">
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-feather"></i> Pillar 1: Edge Feasibility</div>
+          <p class="file-desc">Downsized model footprint to <strong>86 KB</strong> (54% smaller than CNN alone, 140,000x smaller than Random Forest), allowing it to fit into IoT gateway cache.</p>
+        </div>
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-shield"></i> Pillar 2: Zero Leakage</div>
+          <p class="file-desc">Stripped all static identifiers (IPs, Ports, Timestamps) to guarantee the AI learns genuine protocol anomalies rather than memorizing IP addresses.</p>
+        </div>
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-brain"></i> Pillar 3: Explainability</div>
+          <p class="file-desc">Applied game-theoretic SHAP across all models, proving mathematically that <strong>MQTT protocol fields</strong> drive intrusion detection.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Code Walkthrough -->
+    <section class="study-section" id="code-walk">
+      <h2 class="section-title"><i class="fa-solid fa-code"></i> 2. Code Walkthrough: What to Open & Show</h2>
+      <p style="color: var(--text-muted); margin-bottom: 16px;">If your faculty asks to see the code, open these exact 4 files in <code>src/</code>:</p>
+
+      <div class="file-grid">
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> src/models.py (Line 74)</div>
+          <p class="file-desc"><strong>Proposed CNN_GRU Architecture:</strong> 1D-CNN feature extraction + MaxPooling + GRU recurrent sequence processing.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "Here is our hybrid model. The 1D-CNN compresses the 61 inputs so the GRU requires far fewer units, keeping params to 21,121."</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> src/preprocessing.py</div>
+          <p class="file-desc"><strong>Data Cleaning & Scaler:</strong> Drops IP/MAC/Port leakage columns and normalizes features using MinMax scaling.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "Here is our leakage drop list. We force the AI to learn structural protocol behavior rather than static IP addresses."</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> src/training.py</div>
+          <p class="file-desc"><strong>Training Engine:</strong> PyTorch Adam optimization loop, early stopping on validation loss, and full metric tracking.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "This manages batching, computes validation loss each epoch, and calculates Macro-F1 and inference latency."</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> src/explainability.py</div>
+          <p class="file-desc"><strong>SHAP Engine:</strong> Uses <code>shap.GradientExplainer</code> to compute exact feature attribution scores.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "Here we compute Shapley values to identify exactly which packet attributes triggered the attack alert."</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: best_model.pt -->
+    <section class="study-section" id="best-model">
+      <h2 class="section-title"><i class="fa-solid fa-microchip"></i> 3. Deep Dive: What is `best_model.pt`?</h2>
+      
+      <div class="callout">
+        <div class="callout-title"><i class="fa-solid fa-circle-info"></i> What does it represent?</div>
+        <p><code>best_model.pt</code> is the serialized PyTorch binary file storing the <strong>21,121 optimized weights and biases</strong> of your trained neural network from the epoch with the lowest validation loss.</p>
+      </div>
+
+      <div class="table-box">
+        <table>
+          <thead>
+            <tr>
+              <th>Experiment</th>
+              <th>Model</th>
+              <th>File Size on Disk</th>
+              <th>Why It Matters</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>E01</code></td>
+              <td>Random Forest Binary</td>
+              <td><strong>12.03 GB</strong></td>
+              <td>Crashes small IoT gateway RAM.</td>
+            </tr>
+            <tr>
+              <td><code>E03</code></td>
+              <td>1D-CNN Binary</td>
+              <td>0.18 MB</td>
+              <td>Baseline benchmark.</td>
+            </tr>
+            <tr>
+              <td><code>E04</code></td>
+              <td>GRU Binary</td>
+              <td>0.13 MB</td>
+              <td>Baseline benchmark.</td>
+            </tr>
+            <tr style="background: rgba(99, 102, 241, 0.08);">
+              <td><strong><code>E05</code></strong></td>
+              <td><strong>Proposed CNN-GRU</strong></td>
+              <td><strong style="color: var(--accent-emerald);">0.086 MB (86 KB)</strong></td>
+              <td><strong>★ 54% smaller than CNN alone; fits in CPU L2 cache!</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 4: IoT Deployment -->
+    <section class="study-section" id="iot-deployment">
+      <h2 class="section-title"><i class="fa-solid fa-network-wired"></i> 4. IoT Real-World Deployment Architecture</h2>
+      
+      <p style="color: var(--text-muted); margin-bottom: 16px;">Individual sensors (smart meters, bulbs, temperature probes) do not run the AI. The model is saved on the <strong>IoT Edge Gateway / Local MQTT Broker</strong> (e.g., Raspberry Pi).</p>
+
+      <div class="speech-quote">
+        <div class="speech-quote-header">
+          <span class="speech-quote-tag"><i class="fa-solid fa-arrows-split-up-and-left"></i> The 5-Step Real-Time Execution Lifecycle</span>
+        </div>
+        <p class="speech-quote-text">
+          <strong>1. Packet Ingestion:</strong> Sensor transmits an MQTT telemetry message.
+          <br>
+          <strong>2. Header Sniffing:</strong> Gateway intercepts packet headers via <code>libpcap/Scapy</code> and extracts 61 features (&lt; 0.5 ms).
+          <br>
+          <strong>3. AI Inference:</strong> Gateway passes features to <code>best_model.pt</code> (&lt; 10 ms).
+          <br>
+          <strong>4. Inline Action:</strong> If Normal ➔ Forward packet. If Attack ➔ <strong>Drop packet immediately</strong> and isolate the compromised sensor.
+          <br>
+          <strong>5. Explainable Alert:</strong> Gateway logs the SHAP explanation (e.g., *"Abnormal MQTT Topic Length"*) to the admin dashboard.
+        </p>
+      </div>
+    </section>
+
+    <!-- Section 5: Parameters -->
+    <section class="study-section" id="parameters">
+      <h2 class="section-title"><i class="fa-solid fa-sliders"></i> 5. Complete Parameter Guide</h2>
+
+      <div class="table-box">
+        <table>
+          <thead>
+            <tr>
+              <th>Parameter Category</th>
+              <th>Setting / Value</th>
+              <th>Simple Explanation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Batch Size</strong></td>
+              <td><code>256</code> / <code>512</code></td>
+              <td>Number of packet samples processed before updating neural weights.</td>
+            </tr>
+            <tr>
+              <td><strong>Learning Rate</strong></td>
+              <td><code>0.001</code></td>
+              <td>Step size taken by the Adam optimizer during weight adjustments.</td>
+            </tr>
+            <tr>
+              <td><strong>Dropout</strong></td>
+              <td><code>0.2</code> (20%)</td>
+              <td>Randomly disables 20% of neurons during training to prevent overfitting.</td>
+            </tr>
+            <tr>
+              <td><strong>CNN Layer</strong></td>
+              <td><code>Filters=32, Kernel=3</code></td>
+              <td>Scans 3 adjacent features at a time to discover 32 distinct spatial patterns.</td>
+            </tr>
+            <tr>
+              <td><strong>GRU Layer</strong></td>
+              <td><code>Hidden=64</code></td>
+              <td>64 recurrent memory units that track sequential correlations across features.</td>
+            </tr>
+            <tr>
+              <td><strong>Total Learnable Params</strong></td>
+              <td><strong>21,121</strong></td>
+              <td>Total numbers stored in <code>best_model.pt</code> (creating the tiny 86 KB footprint).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 6: Metrics -->
+    <section class="study-section" id="metrics">
+      <h2 class="section-title"><i class="fa-solid fa-chart-pie"></i> 6. Results & Evaluation Metrics</h2>
+
+      <div class="table-box">
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Our Score</th>
+              <th>Plain Language Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Accuracy</strong></td>
+              <td><code>100.0%</code> (Binary) <br> <code>94.74%</code> (Multiclass)</td>
+              <td>Overall percentage of correct predictions.</td>
+            </tr>
+            <tr>
+              <td><strong>Precision</strong></td>
+              <td><code>1.0000</code></td>
+              <td>When the alarm goes off, how often is it a real attack? (Zero false alarms).</td>
+            </tr>
+            <tr>
+              <td><strong>Recall</strong></td>
+              <td><code>1.0000</code></td>
+              <td>Out of all real attacks, how many did we catch? (Zero missed attacks).</td>
+            </tr>
+            <tr>
+              <td><strong>F1-Score</strong></td>
+              <td><code>1.0000</code></td>
+              <td>Balanced harmonic mean of Precision and Recall.</td>
+            </tr>
+            <tr>
+              <td><strong>Weighted-F1</strong></td>
+              <td><code>0.9397</code> (94%)</td>
+              <td>F1 weighted by class frequency (reflects majority stream accuracy).</td>
+            </tr>
+            <tr>
+              <td><strong>Macro-F1</strong></td>
+              <td><code>0.6445</code> (64%)</td>
+              <td>Unweighted average F1 across all 15 classes (highlights rare-class imbalance).</td>
+            </tr>
+            <tr>
+              <td><strong>Latency</strong></td>
+              <td><code>0.0105s (~10ms)</code></td>
+              <td>Time taken to inspect 1 packet header on edge hardware.</td>
+            </tr>
+            <tr>
+              <td><strong>SHAP Value</strong></td>
+              <td><code>mqtt.topic</code> Rank #1</td>
+              <td>Feature contribution score proving AI decisions rely on IoT protocol tampering.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 7: Script -->
+    <section class="study-section" id="speech-script">
+      <h2 class="section-title"><i class="fa-solid fa-microphone"></i> 7. 5-Minute Faculty Presentation Script</h2>
+
+      <div class="speech-quote">
+        <div class="speech-quote-header">
+          <span class="speech-quote-tag">Stage 1: Problem Statement (45 sec)</span>
+          <button class="copy-btn" onclick="copyQuote(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+        </div>
+        <p class="speech-quote-text">
+          "Good morning sir/ma'am. Our project is <strong>Explainable Hybrid Deep Learning-Based Intrusion Detection for IoT Networks</strong>. Traditional intrusion detection systems require heavy enterprise servers, while IoT devices have strict CPU and memory constraints. Our goal is to build an <strong>ultra-lightweight hybrid model under 100 KB</strong> that runs on IoT edge gateways and incorporates <strong>SHAP explainability</strong> to provide transparent reasoning for every alert."
+        </p>
+      </div>
+
+      <div class="speech-quote">
+        <div class="speech-quote-header">
+          <span class="speech-quote-tag">Stage 2: Dataset & Zero Leakage (45 sec)</span>
+          <button class="copy-btn" onclick="copyQuote(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+        </div>
+        <p class="speech-quote-text">
+          "We used the <strong>Edge-IIoTset dataset</strong> with 15 attack types. To guarantee scientific validity, we enforced a <strong>strict data leakage prevention policy</strong>: we stripped all IP addresses, MAC addresses, port numbers, and timestamps. This prevents the model from memorizing fixed IP addresses, forcing it to learn genuine protocol header anomalies."
+        </p>
+      </div>
+
+      <div class="speech-quote">
+        <div class="speech-quote-header">
+          <span class="speech-quote-tag">Stage 3: Proposed CNN-GRU Architecture (60 sec)</span>
+          <button class="copy-btn" onclick="copyQuote(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+        </div>
+        <p class="speech-quote-text">
+          "Random Forest gave 100% accuracy, but required a <strong>12 GB file size</strong>—unusable on edge devices. Our proposed <strong>CNN-GRU Hybrid</strong> uses 1D-CNN to compress packet features and GRU to capture sequence patterns. This reduces parameters to just <strong>21,121</strong> and file size to <strong>86 KB</strong>—a 54% reduction compared to CNN alone with zero loss in detection accuracy."
+        </p>
+      </div>
+
+      <div class="speech-quote">
+        <div class="speech-quote-header">
+          <span class="speech-quote-tag">Stage 4: Results & SHAP Findings (60 sec)</span>
+          <button class="copy-btn" onclick="copyQuote(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+        </div>
+        <p class="speech-quote-text">
+          "Our CNN-GRU achieved <strong>100% binary detection</strong> and <strong>94.74% multiclass accuracy</strong>. Using game-theoretic SHAP, all deep learning models independently converged on <strong>MQTT protocol fields (<code>mqtt.topic</code>, <code>mqtt.protoname</code>)</strong> as the primary attack indicator, proving our AI detects genuine protocol manipulation."
+        </p>
+      </div>
+    </section>
+
+    <!-- Section 8: Defense Q&A -->
+    <section class="study-section" id="faculty-qa">
+      <h2 class="section-title"><i class="fa-solid fa-shield-halved"></i> 8. Tough Faculty Defense Q&A</h2>
+
+      <div class="qa-block">
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-primary);"></i> Q1: Why not just use Random Forest if it got 100%?</div>
+        <div class="qa-ans">
+          "Random Forest required <strong>12.0 GB of storage</strong>, causing instant out-of-memory crashes on IoT gateways. Our CNN-GRU model achieves the same 100% accuracy in <strong>86 KB</strong> (140,000x smaller), enabling real-time on-device execution."
+        </div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-amber);"></i> Q2: Why is Macro-F1 0.64 in multiclass when accuracy is 94.7%?</div>
+        <div class="qa-ans">
+          "Edge-IIoTset is heavily imbalanced. Rare attacks like XSS have few samples. Macro-F1 treats all 15 classes equally, honestly showing rare-class difficulty. We are implementing Focal Loss in Phase 5 to resolve this."
+        </div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-cyan);"></i> Q3: Where does this model sit in an IoT network?</div>
+        <div class="qa-ans">
+          "On the <strong>IoT Edge Gateway or Local MQTT Broker</strong> (like a Raspberry Pi). It inspects packet headers inline in under 10 ms and drops malicious packets locally without needing cloud round-trips."
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function copyQuote(btn) {
+      const box = btn.closest('.speech-quote');
+      const text = box.querySelector('.speech-quote-text').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check" style="color: #10b981;"></i> Copied!';
+        setTimeout(() => { btn.innerHTML = orig; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
