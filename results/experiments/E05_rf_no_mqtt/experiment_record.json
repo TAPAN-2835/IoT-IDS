@@ -1,0 +1,31 @@
+{
+    "experiment_id": "E05_rf_no_mqtt",
+    "dataset": "Edge-IIoTset",
+    "dataset_file": "DNN-EdgeIIoT-dataset.csv",
+    "dataset_hash": "1d3ef6c7cc22784a528a117f1158f5cad750273679437e18a39c360ee6b79fd7",
+    "target": "Attack_label",
+    "split_strategy": "stratified_random",
+    "random_seed": 42,
+    "model": "RandomForestClassifier",
+    "hyperparameters": {
+        "n_estimators": 200,
+        "class_weight": "balanced"
+    },
+    "train_size": 1553440,
+    "test_size": 332881,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "macro_f1": 1.0,
+    "weighted_f1": 1.0,
+    "fpr": 0.0,
+    "fnr": 0.0,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "training_time_s": 179.02496719360352,
+    "inference_time_s": 2.8971855640411377,
+    "inference_latency_ms": 0.008703367161361381,
+    "throughput_req_per_s": 114898.0597348004,
+    "model_size_bytes": 764649
+}

@@ -11,6 +11,22 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support, f1_
 from src import config as cfg
 from src.utils import setup_logger, save_json
 from src.models import CNN1D, GRUBaseline, CNN_GRU
+import torch.nn.functional as F
+
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=1, gamma=2, reduction='mean'):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, inputs, targets):
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none')
+        pt = torch.exp(-ce_loss)
+        focal_loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
+        if self.reduction == 'mean':
+            return focal_loss.mean()
+        return focal_loss.sum() if self.reduction == 'sum' else focal_loss
 
 logger = setup_logger(__name__)
 
@@ -29,7 +45,7 @@ def _write_progress(**kwargs):
         logger.warning(f"Could not write training_progress.json: {e}")
 
 
-def train_dl_model(experiment_id, model_name, target_col, task_type):
+def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="ce"):
     logger.info(f"Starting {experiment_id} using {model_name} on {target_col}")
     cfg.set_seeds()
     _write_progress(experiment_id=experiment_id, model=model_name, phase="loading_data",
@@ -70,7 +86,18 @@ def train_dl_model(experiment_id, model_name, target_col, task_type):
         y_test_t = torch.tensor(y_test_bin).unsqueeze(1)
     else:
         num_classes = len(np.unique(y_train))
-        criterion = nn.CrossEntropyLoss()
+        
+        if loss_type == "ce":
+            criterion = nn.CrossEntropyLoss()
+        elif loss_type == "class_weighted":
+            class_counts = np.bincount(y_train)
+            weights = len(y_train) / (num_classes * class_counts)
+            criterion = nn.CrossEntropyLoss(weight=torch.tensor(weights, dtype=torch.float32).to(device))
+        elif loss_type == "focal":
+            criterion = FocalLoss(gamma=2.0)
+        else:
+            criterion = nn.CrossEntropyLoss()
+            
         y_train_t = torch.tensor(y_train, dtype=torch.long)
         y_val_t = torch.tensor(y_val, dtype=torch.long)
         y_test_t = torch.tensor(y_test, dtype=torch.long)
@@ -102,6 +129,7 @@ def train_dl_model(experiment_id, model_name, target_col, task_type):
     best_val_loss = float('inf')
     patience_counter = 0
     best_model_path = exp_dir / "best_model.pt"
+    history = {"train_loss": [], "val_loss": []}
     _write_progress(experiment_id=experiment_id, model=model_name, phase="training",
                      epoch=0, total_epochs=cfg.EPOCHS, elapsed_s=0)
 
@@ -129,6 +157,9 @@ def train_dl_model(experiment_id, model_name, target_col, task_type):
         train_loss /= len(train_loader)
         val_loss /= len(val_loader)
         
+        history["train_loss"].append(train_loss)
+        history["val_loss"].append(val_loss)
+        
         logger.info(f"Epoch {epoch+1}/{cfg.EPOCHS} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
 
         if val_loss < best_val_loss:
@@ -150,6 +181,9 @@ def train_dl_model(experiment_id, model_name, target_col, task_type):
             break
 
     training_time = time.time() - t0
+    
+    save_json(history, exp_dir / "training_history.json")
+    
     _write_progress(experiment_id=experiment_id, model=model_name, phase="evaluating",
                      epoch=epoch + 1, total_epochs=cfg.EPOCHS, elapsed_s=round(training_time, 1))
 
@@ -200,18 +234,43 @@ def train_dl_model(experiment_id, model_name, target_col, task_type):
         cm = confusion_matrix(y_test, y_pred)
         fpr, fnr = None, None
         
+    from sklearn.metrics import classification_report
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    
+    true_labels = y_test_bin if task_type == 'binary' else y_test
+    report_dict = classification_report(true_labels, y_pred, output_dict=True, zero_division=0)
+    pd.DataFrame(report_dict).transpose().to_csv(exp_dir / "classification_report.csv")
+    
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=False, cmap='Blues', fmt='g')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title(f'Confusion Matrix - {experiment_id}')
+    plt.savefig(exp_dir / "confusion_matrix.png", dpi=150, bbox_inches='tight')
+    plt.close()
+        
     param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     model_size_mb = os.path.getsize(best_model_path) / (1024 * 1024)
     
     # Update Registry
+    from datetime import datetime
     registry_path = cfg.RESULTS_DIR / "experiment_registry.csv"
     if registry_path.exists():
         df = pd.read_csv(registry_path)
     else:
         df = pd.DataFrame()
         
+    features_used = []
+    feature_path = cfg.MODELS_DIR / "feature_columns.json"
+    if feature_path.exists():
+        import json
+        with open(feature_path, "r") as f:
+            features_used = json.load(f).get("features", [])
+            
     new_record = {
         "experiment_id": experiment_id,
+        "timestamp": datetime.now().isoformat(),
         "model": model_name,
         "dataset": "Edge-IIoTset",
         "feature_policy": cfg.FEATURE_POLICY,
@@ -228,13 +287,24 @@ def train_dl_model(experiment_id, model_name, target_col, task_type):
         "training_time": training_time,
         "inference_latency": (inference_time / len(X_test)) * 1000,
         "parameters": param_count,
-        "model_size_mb": model_size_mb
+        "model_size_mb": model_size_mb,
+        "features_used": features_used,
+        "loss_type": loss_type,
+        "hyperparameters": {
+            "batch_size": cfg.BATCH_SIZE,
+            "learning_rate": cfg.LEARNING_RATE,
+            "epochs": cfg.EPOCHS
+        }
     }
     
-    df = pd.concat([df, pd.DataFrame([new_record])], ignore_index=True)
-    df.to_csv(registry_path, index=False)
-    
+    # Save the full config as JSON
     save_json(new_record, exp_dir / "experiment_record.json")
+    
+    # Save to CSV (excluding complex objects like features_used and hyperparameters)
+    csv_record = {k: v for k, v in new_record.items() if k not in ["features_used", "hyperparameters"]}
+    df = pd.concat([df, pd.DataFrame([csv_record])], ignore_index=True)
+    df.to_csv(registry_path, index=False)
+
     logger.info(f"Finished {experiment_id}. Accuracy: {accuracy:.4f}")
     _write_progress(experiment_id=experiment_id, model=model_name, phase="complete",
                      epoch=epoch + 1, total_epochs=cfg.EPOCHS, elapsed_s=round(training_time, 1),
@@ -246,4 +316,5 @@ if __name__ == "__main__":
     model_n = sys.argv[2]
     target = sys.argv[3]
     task = sys.argv[4]
-    train_dl_model(exp_id, model_n, target, task)
+    loss_t = sys.argv[5] if len(sys.argv) > 5 else "ce"
+    train_dl_model(exp_id, model_n, target, task, loss_type=loss_t)

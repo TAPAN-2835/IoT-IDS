@@ -1,5 +1,24 @@
 {
-    "features": [
+    "experiment_id": "E02_focal_loss",
+    "timestamp": "2026-10-01T23:11:02.260790",
+    "model": "CNN-GRU",
+    "dataset": "Edge-IIoTset",
+    "feature_policy": "no_mqtt",
+    "split": "stratified_random",
+    "seed": 42,
+    "accuracy": 0.8013794719434272,
+    "precision": 0.10102349898423289,
+    "recall": 0.19429434477483054,
+    "f1": 0.12057958865947586,
+    "macro_f1": 0.12057958865947586,
+    "weighted_f1": 0.7604592420892672,
+    "fpr": null,
+    "fnr": null,
+    "training_time": 164.53891491889954,
+    "inference_latency": 0.02949270719822671,
+    "parameters": 21583,
+    "model_size_mb": 0.08788013458251953,
+    "features_used": [
         "num__arp.opcode",
         "num__arp.hw.size",
         "num__icmp.checksum",
@@ -63,5 +82,11 @@
         "cat__dns.qry.name.len__googlecast._tcp.local",
         "cat__dns.qry.name.len_null-null.local",
         "cat__dns.qry.name.len_raspberrypi.local"
-    ]
+    ],
+    "loss_type": "focal",
+    "hyperparameters": {
+        "batch_size": 8192,
+        "learning_rate": 0.001,
+        "epochs": 1
+    }
 }

@@ -98,9 +98,18 @@ def train_and_evaluate(experiment_id: str, target_col: str, task_type: str):
     joblib.dump(model, model_path)
     model_size = os.path.getsize(model_path)
     
+    from datetime import datetime
+    features_used = []
+    feature_path = MODELS_DIR / "feature_columns.json"
+    if feature_path.exists():
+        import json
+        with open(feature_path, "r") as f:
+            features_used = json.load(f).get("features", [])
+            
     # Save metrics JSON/CSV
     metrics = {
         "experiment_id": experiment_id,
+        "timestamp": datetime.now().isoformat(),
         "dataset": "Edge-IIoTset",
         "dataset_file": metadata.get("filename"),
         "dataset_hash": metadata.get("sha256"),
@@ -125,11 +134,23 @@ def train_and_evaluate(experiment_id: str, target_col: str, task_type: str):
         "inference_time_s": inference_time,
         "inference_latency_ms": (inference_time / len(X_test)) * 1000,
         "throughput_req_per_s": len(X_test) / inference_time,
-        "model_size_bytes": model_size
+        "model_size_bytes": model_size,
+        "features_used": features_used
     }
     
     save_json(metrics, exp_dir / "experiment_record.json")
-    pd.DataFrame([metrics]).to_csv(exp_dir / "experiment_record.csv", index=False)
+    
+    csv_metrics = {k: v for k, v in metrics.items() if k not in ["features_used", "hyperparameters"]}
+    pd.DataFrame([csv_metrics]).to_csv(exp_dir / "experiment_record.csv", index=False)
+    
+    # Update central experiment registry
+    registry_path = RESULTS_DIR / "experiment_registry.csv"
+    if registry_path.exists():
+        df_reg = pd.read_csv(registry_path)
+    else:
+        df_reg = pd.DataFrame()
+    df_reg = pd.concat([df_reg, pd.DataFrame([csv_metrics])], ignore_index=True)
+    df_reg.to_csv(registry_path, index=False)
     
     # Classification Report
     report_dict = classification_report(y_test, y_pred, output_dict=True, zero_division=0)

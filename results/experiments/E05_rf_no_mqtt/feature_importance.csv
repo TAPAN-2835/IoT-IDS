@@ -1,0 +1,63 @@
+feature,importance
+cat__dns.qry.name.len_0.0,0.29052698830244567
+cat__dns.qry.name.len_0,0.26181907266995275
+cat__http.request.method_0.0,0.06700457057252261
+num__tcp.flags,0.06355407090961825
+cat__http.request.version_0.0,0.05805909606032554
+num__tcp.checksum,0.04351885678860062
+cat__http.request.version_0,0.03637081753557579
+num__tcp.flags.ack,0.03144980967812266
+cat__http.request.method_0,0.02502866007392327
+num__icmp.seq_le,0.015443247686960312
+num__udp.stream,0.013471140801780909
+num__tcp.ack_raw,0.013435159986482677
+num__tcp.ack,0.013278471442001581
+num__tcp.connection.rst,0.012172216341302756
+num__icmp.checksum,0.009516878923022103
+num__tcp.len,0.008942437193062125
+cat__http.referer_0.0,0.008277480164325538
+cat__http.referer_0,0.007733159638655558
+num__tcp.seq,0.007444117451090722
+num__http.content_length,0.0026624159022619904
+num__tcp.connection.syn,0.0020827384033796277
+cat__http.request.method_GET,0.001816631789792137
+cat__http.request.version_HTTP/1.1,0.001680913447337813
+num__http.response,0.001244194679636707
+num__tcp.connection.fin,0.0012067571991109878
+num__tcp.connection.synack,0.0004569806790784925
+num__dns.retransmission,0.00041185554588014895
+num__dns.qry.qu,0.00034679580261474176
+num__dns.qry.name,0.0003204529166827997
+cat__http.request.version_HTTP/1.0,0.00024710418642008217
+cat__dns.qry.name.len_1.debian.pool.ntp.org,8.279779627703724e-05
+cat__dns.qry.name.len_0.debian.pool.ntp.org,7.69968122526858e-05
+cat__dns.qry.name.len_2.debian.pool.ntp.org,6.605441644500912e-05
+cat__dns.qry.name.len_3.debian.pool.ntp.org,6.536998512612934e-05
+cat__dns.qry.name.len_1.0,6.12402404159338e-05
+num__arp.hw.size,5.3564173848803575e-05
+num__arp.opcode,4.5273242278751286e-05
+cat__http.referer_127.0.0.1,6.0297761966952445e-06
+cat__http.request.method_POST,4.208544203338753e-06
+num__dns.retransmit_request,4.101109461228996e-06
+num__dns.retransmit_request_in,3.8670723708824924e-06
+cat__dns.qry.name.len_raspberrypi.local,3.2251246181441404e-06
+cat__http.request.method_TRACE,2.672298301469926e-06
+num__mbtcp.len,6.213183747820826e-07
+cat__dns.qry.name.len_null-null.local,4.452608824462932e-07
+cat__dns.qry.name.len__googlecast._tcp.local,4.126716283849386e-07
+cat__http.request.method_OPTIONS,2.738531834744005e-08
+"cat__http.request.version_Src=javascript:alert('Vulnerable')><Img Src=\"" HTTP/1.1",1.6420890013840024e-14
+cat__http.request.version_name=a><input name=i value=XSS>&lt;script>alert('Vulnerable')</script> HTTP/1.1,1.0858102648910506e-14
+cat__http.referer_() { _; } >_[$($())] { echo 93e4r0-CVE-2014-6278: true; echo;echo; },3.036682918689558e-15
+cat__http.request.version_> HTTP/1.1,1.9501971414634957e-15
+cat__http.request.version_-al&ABSOLUTE_PATH_STUDIP=http://cirt.net/rfiinc.txt?? HTTP/1.1,3.140140394715938e-16
+cat__http.request.method_PUT,1.1370094884712868e-16
+cat__http.request.version_-a HTTP/1.1,1.0714825370881699e-16
+cat__http.request.method_SEARCH,1.1417295235086037e-17
+num__icmp.unused,0.0
+num__dns.qry.type,0.0
+cat__http.request.method_PROPFIND,0.0
+cat__http.request.version_-al&_PHPLIB[libdir]=http://cirt.net/rfiinc.txt?? HTTP/1.1,0.0
+cat__http.request.version_/etc/passwd|?data=Download HTTP/1.1,0.0
+cat__http.referer_TESTING_PURPOSES_ONLY,0.0
+"cat__http.request.version_script>alert(1)/script><\"" HTTP/1.1",0.0

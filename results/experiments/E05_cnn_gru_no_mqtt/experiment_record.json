@@ -1,5 +1,24 @@
 {
-    "features": [
+    "experiment_id": "E05_cnn_gru_no_mqtt",
+    "timestamp": "2026-10-01T20:08:55.935087",
+    "model": "CNN-GRU",
+    "dataset": "Edge-IIoTset",
+    "feature_policy": "no_mqtt",
+    "split": "stratified_random",
+    "seed": 42,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "macro_f1": 1.0,
+    "weighted_f1": 1.0,
+    "fpr": 0.0,
+    "fnr": 0.0,
+    "training_time": 865.2280135154724,
+    "inference_latency": 0.03089076568141371,
+    "parameters": 21121,
+    "model_size_mb": 0.08617115020751953,
+    "features_used": [
         "num__arp.opcode",
         "num__arp.hw.size",
         "num__icmp.checksum",
@@ -47,7 +66,6 @@
         "cat__http.request.version_0",
         "cat__http.request.version_0.0",
         "cat__http.request.version_> HTTP/1.1",
-        "cat__http.request.version_By Dr HTTP/1.1",
         "cat__http.request.version_HTTP/1.0",
         "cat__http.request.version_HTTP/1.1",
         "cat__http.request.version_Src=javascript:alert('Vulnerable')><Img Src=\\\" HTTP/1.1",
@@ -63,5 +81,11 @@
         "cat__dns.qry.name.len__googlecast._tcp.local",
         "cat__dns.qry.name.len_null-null.local",
         "cat__dns.qry.name.len_raspberrypi.local"
-    ]
+    ],
+    "loss_type": "ce",
+    "hyperparameters": {
+        "batch_size": 8192,
+        "learning_rate": 0.001,
+        "epochs": 5
+    }
 }

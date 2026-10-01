@@ -59,7 +59,7 @@ TEST_RATIO = 0.15
 # ==========================================
 BATCH_SIZE = 8192
 LEARNING_RATE = 1e-3
-EPOCHS = 15
+EPOCHS = 5
 EARLY_STOPPING_PATIENCE = 3
 
 # ==========================================

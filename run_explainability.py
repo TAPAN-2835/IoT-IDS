@@ -21,7 +21,7 @@ def main():
     logger.info("=" * 60)
 
     experiments = [
-        ("E05_cnn_gru_binary", "CNN-GRU", "binary"),   # Primary: proposed model
+        ("E05_cnn_gru_no_mqtt", "CNN-GRU", "binary"),   # Primary: proposed model (ablated)
         ("E03_cnn1d_binary",   "1D-CNN",  "binary"),   # Ablation: CNN only
         ("E04_gru_binary",     "GRU",     "binary"),   # Ablation: GRU only
     ]

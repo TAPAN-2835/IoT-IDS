@@ -16,9 +16,10 @@ logger = setup_logger(__name__)
 
 def get_operational_features() -> list:
     """Load the operational features designated by the audit phase."""
-    policy_path = cfg.AUDIT_DIR / "operational_feature_policy.csv"
+    policy_filename = f"{cfg.FEATURE_POLICY}_feature_policy.csv" if hasattr(cfg, "FEATURE_POLICY") and cfg.FEATURE_POLICY != "operational" else "operational_feature_policy.csv"
+    policy_path = cfg.AUDIT_DIR / policy_filename
     if not policy_path.exists():
-        logger.error("operational_feature_policy.csv not found. Please run audit first.")
+        logger.error(f"{policy_filename} not found. Please run audit first.")
         return []
     
     policy_df = pd.read_csv(policy_path)
