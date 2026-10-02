@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 import pandas as pd
 from unittest import mock
 from src import data_loader, audit, preprocessing
@@ -75,3 +76,51 @@ def test_train_test_split_and_preprocessing_fit(mock_get_op, dummy_dataset_path)
     full_means = X[num_features].mean().values
     with pytest.raises(AssertionError):
         np.testing.assert_almost_equal(scaler.mean_, full_means, decimal=5)
+
+
+def test_canonicalize_merges_empty_token_spellings():
+    """'0' and '0.0' must become one category, otherwise one-hot encoding leaks the capture file."""
+    s = pd.Series(["0", "0.0", "0", "MQTT", None, "1461073", "1461073.0"])
+    out = preprocessing.canonicalize_column(s)
+    assert out[0] == out[1] == out[2] == "0.0"
+    assert out[3] == "MQTT"
+    assert pd.isna(out[4])
+    assert out[5] == out[6]
+    assert out.nunique() == 3
+
+
+def test_clean_data_removes_zero_format_shortcut():
+    """After cleaning, the empty-field spelling no longer separates the classes."""
+    df = pd.DataFrame({
+        "dns.qry.name.len": ["0"] * 5 + ["0.0"] * 5,
+        "tcp.flags": [1.0] * 10,
+        "Attack_label": [0] * 5 + [1] * 5,
+    })
+    out = preprocessing.clean_data(df, ["dns.qry.name.len", "tcp.flags"], "Attack_label")
+    assert out["dns.qry.name.len"].nunique() == 1
+
+    preprocessor = preprocessing.build_preprocessor(out.drop(columns=["Attack_label"]))
+    X = preprocessor.fit_transform(out.drop(columns=["Attack_label"]))
+    assert X.shape == (10, 2)  # one numeric column + a single one-hot column
+
+
+def test_display_names_keep_one_hot_category():
+    from src.explainability import _display_names
+    names = ["num__tcp.flags", "cat__mqtt.topic_0", "cat__mqtt.topic_0.0", "cat__http.request.method_GET"]
+    out = _display_names(names, ["mqtt.topic", "http.request.method"])
+    assert out == ["tcp.flags", "mqtt.topic=0", "mqtt.topic=0.0", "http.request.method=GET"]
+    assert len(set(out)) == len(out)
+
+
+def test_shap_refuses_mismatched_training_data(tmp_path):
+    """A model trained without MQTT features must not be explained with MQTT data."""
+    import json
+    from src.explainability import _check_data_matches_experiment
+    (tmp_path / "experiment_record.json").write_text(json.dumps({"features_used": ["num__tcp.flags"]}))
+    meta = {"fingerprint": "abc", "n_features": 2, "feature_policy": "operational",
+            "feature_names": ["num__tcp.flags", "num__mqtt.len"]}
+    with pytest.raises(RuntimeError):
+        _check_data_matches_experiment("E_test", tmp_path, meta)
+
+    meta_ok = dict(meta, feature_names=["num__tcp.flags"], n_features=1)
+    _check_data_matches_experiment("E_test", tmp_path, meta_ok)  # does not raise

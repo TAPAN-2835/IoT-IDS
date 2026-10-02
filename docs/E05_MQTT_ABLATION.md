@@ -1,3 +1,5 @@
+> **Correction (2026-10-02):** Result confirmed and explained: removing MQTT cannot help because dns.qry.name.len carries the same "0" vs "0.0" artefact. See [LEAKAGE_FIX_AND_CLEAN_BASELINES.md](LEAKAGE_FIX_AND_CLEAN_BASELINES.md).
+
 # E05 - MQTT ABLATION
 
 ## 1. Objective

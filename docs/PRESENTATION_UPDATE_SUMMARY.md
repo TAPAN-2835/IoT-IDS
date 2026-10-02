@@ -1,3 +1,5 @@
+> **Correction (2026-10-02):** Do not present as-is: the "immune to dataset shortcuts" and focal-loss claims are not supported by the experiment records. See [LEAKAGE_FIX_AND_CLEAN_BASELINES.md](LEAKAGE_FIX_AND_CLEAN_BASELINES.md).
+
 # IoT-IDS Project Update: Recent Achievements & Next Steps
 *(Prepared for Presentation / Status Update)*
 

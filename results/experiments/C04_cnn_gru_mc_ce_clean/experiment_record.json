@@ -1,5 +1,24 @@
 {
-    "features": [
+    "experiment_id": "C04_cnn_gru_mc_ce_clean",
+    "timestamp": "2026-10-02T01:21:43.802047",
+    "model": "CNN-GRU",
+    "dataset": "Edge-IIoTset",
+    "feature_policy": "operational",
+    "split": "stratified_random",
+    "seed": 42,
+    "accuracy": 0.8929437246343288,
+    "precision": 0.6021609740949576,
+    "recall": 0.4045862113281779,
+    "f1": 0.4225057085828581,
+    "macro_f1": 0.4225057085828581,
+    "weighted_f1": 0.8571906727931696,
+    "fpr": null,
+    "fnr": null,
+    "training_time": 126.65331268310547,
+    "inference_latency": 0.0022640249930208764,
+    "parameters": 21583,
+    "model_size_mb": 0.08751392364501953,
+    "features_used": [
         "num__arp.opcode",
         "num__arp.hw.size",
         "num__icmp.checksum",
@@ -84,5 +103,22 @@
         "cat__mqtt.protoname_MQTT",
         "cat__mqtt.topic_0.0",
         "cat__mqtt.topic_Temperature_and_Humidity"
-    ]
+    ],
+    "loss_type": "ce",
+    "canonicalize_numeric_tokens": true,
+    "epochs_run": 15,
+    "device": "cuda",
+    "hyperparameters": {
+        "batch_size": 8192,
+        "learning_rate": 0.001,
+        "epochs": 15
+    },
+    "preprocessing": {
+        "fingerprint": "df3c829dd44a4b3a",
+        "target_col": "Attack_type",
+        "feature_policy": "operational",
+        "canonicalize_numeric_tokens": true,
+        "split_seed": 42,
+        "n_features": 84
+    }
 }

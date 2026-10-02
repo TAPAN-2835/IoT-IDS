@@ -1,0 +1,22 @@
+target=Attack_label policy=operational canonicalize=True
+depth-3 tree balanced accuracy (val sample): 0.9132
+
+|--- num__tcp.checksum <= -1.40
+|   |--- num__dns.retransmission <= 0.87
+|   |   |--- num__arp.hw.size <= 9.67
+|   |   |   |--- class: 1
+|   |   |--- num__arp.hw.size >  9.67
+|   |   |   |--- class: 0
+|   |--- num__dns.retransmission >  0.87
+|   |   |--- class: 0
+|--- num__tcp.checksum >  -1.40
+|   |--- num__tcp.ack <= -0.14
+|   |   |--- num__tcp.len <= -0.16
+|   |   |   |--- class: 0
+|   |   |--- num__tcp.len >  -0.16
+|   |   |   |--- class: 1
+|   |--- num__tcp.ack >  -0.14
+|   |   |--- num__tcp.seq <= -0.25
+|   |   |   |--- class: 1
+|   |   |--- num__tcp.seq >  -0.25
+|   |   |   |--- class: 0

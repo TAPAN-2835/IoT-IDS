@@ -1,3 +1,5 @@
+> **Correction (2026-10-02):** The shortcut is real but the mechanism is the "0" vs "0.0" spelling of empty fields across 13 string columns, not MQTT presence. See [LEAKAGE_FIX_AND_CLEAN_BASELINES.md](LEAKAGE_FIX_AND_CLEAN_BASELINES.md).
+
 # E01 - LEAKAGE AND SHORTCUT AUDIT
 
 ## 1. Objective

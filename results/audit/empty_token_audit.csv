@@ -1,0 +1,14 @@
+column,normal_empty_as_0,normal_empty_as_0.0,normal_real_value,attack_empty_as_0,attack_empty_as_0.0,attack_real_value,empty_format_separates_classes
+http.file_data,0,1615643,0,121692,437469,44397,False
+http.request.uri.query,0,1615643,0,87233,502245,14080,False
+http.request.method,0,1615643,0,222839,348632,32087,False
+http.referer,0,1615643,0,115366,487622,570,False
+http.request.full_uri,0,1615643,0,222915,348632,32011,False
+http.request.version,0,1615643,0,224053,347418,32087,False
+tcp.options,1440221,0,175422,13759,312452,277347,False
+tcp.payload,1090759,0,524884,209983,262390,131185,False
+dns.qry.name.len,1613798,0,1845,0,603331,227,True
+mqtt.conack.flags,1532586,0,83057,0,603558,0,True
+mqtt.msg,1532627,0,83016,0,603558,0,True
+mqtt.protoname,1532608,0,83035,0,603558,0,True
+mqtt.topic,1532627,0,83016,0,603558,0,True

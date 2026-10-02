@@ -1,3 +1,5 @@
+> **Correction (2026-10-02):** Removing MQTT did not stop the shortcut (E05 stayed at 100%), and the focal-loss comparison used undertrained models. See [LEAKAGE_FIX_AND_CLEAN_BASELINES.md](LEAKAGE_FIX_AND_CLEAN_BASELINES.md).
+
 # The Complete Guide to Our IoT-IDS Research Project
 *A clear, deep-dive explanation of what we built, what we discovered, and what to do next.*
 

@@ -12,25 +12,28 @@ from sklearn.metrics import f1_score
 
 from src import config as cfg
 from src.utils import setup_logger, save_json
-from src.training import FocalLoss
+from src.training import FocalLoss, load_processed_data, preprocessing_record, iterate_batches
 from src.models import CNN_GRU
 
 logger = setup_logger("E02_hyperparameter_tuning")
 
 def get_data(smoke_test=False):
+    """Multiclass train/val splits as tensors on the GPU (test split is never loaded)."""
     logger.info("Loading parquet datasets for tuning...")
-    X_train = pd.read_parquet(cfg.PROCESSED_DATA_DIR / "X_train.parquet").values.astype(np.float32)
-    y_train = pd.read_parquet(cfg.PROCESSED_DATA_DIR / "y_train.parquet").values.squeeze()
-    X_val = pd.read_parquet(cfg.PROCESSED_DATA_DIR / "X_val.parquet").values.astype(np.float32)
-    y_val = pd.read_parquet(cfg.PROCESSED_DATA_DIR / "y_val.parquet").values.squeeze()
-    
+    data, meta = load_processed_data("Attack_type")  # raises if data/processed/ is not multiclass
+    X_train, y_train, X_val, y_val = data["X_train"], data["y_train"], data["X_val"], data["y_val"]
+    del data
+
     if smoke_test:
         rng = np.random.default_rng(42)
         train_idx = rng.choice(len(X_train), size=min(10000, len(X_train)), replace=False)
         val_idx = rng.choice(len(X_val), size=min(2000, len(X_val)), replace=False)
-        return X_train[train_idx], y_train[train_idx], X_val[val_idx], y_val[val_idx]
-    
-    return X_train, y_train, X_val, y_val
+        X_train, y_train, X_val, y_val = X_train[train_idx], y_train[train_idx], X_val[val_idx], y_val[val_idx]
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    tensors = (torch.from_numpy(X_train).to(device), torch.tensor(y_train, dtype=torch.long, device=device),
+               torch.from_numpy(X_val).to(device), torch.tensor(y_val, dtype=torch.long, device=device))
+    return (*tensors, meta)
 
 class Tunable_CNN_GRU(nn.Module):
     def __init__(self, input_dim, num_classes, dropout_rate, conv_filters, kernel_size, gru_units, dense_units):
@@ -64,8 +67,9 @@ class Tunable_CNN_GRU(nn.Module):
 
 def get_objective(X_train, y_train, X_val, y_val, smoke_test):
     input_dim = X_train.shape[1]
-    num_classes = len(np.unique(y_train))
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    num_classes = int(torch.unique(y_train).numel())
+    device = X_train.device
+    y_val_np = y_val.cpu().numpy()
     
     def objective(trial):
         lr = trial.suggest_float("lr", 1e-4, 1e-2, log=True)
@@ -81,13 +85,7 @@ def get_objective(X_train, y_train, X_val, y_val, smoke_test):
         model = Tunable_CNN_GRU(input_dim, num_classes, dropout, conv_filters, kernel_size, gru_units, dense_units).to(device)
         criterion = FocalLoss(gamma=focal_gamma)
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-        
-        train_dataset = TensorDataset(torch.tensor(X_train), torch.tensor(y_train, dtype=torch.long))
-        val_dataset = TensorDataset(torch.tensor(X_val), torch.tensor(y_val, dtype=torch.long))
-        
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-        
+
         epochs = 2 if smoke_test else 15
         
         best_macro_f1 = 0.0
@@ -96,8 +94,7 @@ def get_objective(X_train, y_train, X_val, y_val, smoke_test):
         
         for epoch in range(epochs):
             model.train()
-            for X_b, y_b in train_loader:
-                X_b, y_b = X_b.to(device), y_b.to(device)
+            for X_b, y_b in iterate_batches(X_train, y_train, batch_size, shuffle=True):
                 optimizer.zero_grad()
                 outputs = model(X_b)
                 loss = criterion(outputs, y_b)
@@ -105,16 +102,13 @@ def get_objective(X_train, y_train, X_val, y_val, smoke_test):
                 optimizer.step()
                 
             model.eval()
-            all_preds, all_targets = [], []
+            all_preds = []
             with torch.no_grad():
-                for X_b, y_b in val_loader:
-                    X_b = X_b.to(device)
-                    outputs = model(X_b)
-                    preds = torch.argmax(outputs, dim=1).cpu().numpy()
-                    all_preds.extend(preds)
-                    all_targets.extend(y_b.numpy())
-                    
-            macro_f1 = f1_score(all_targets, all_preds, average="macro", zero_division=0)
+                for X_b, _ in iterate_batches(X_val, y_val, batch_size):
+                    all_preds.append(torch.argmax(model(X_b), dim=1))
+            all_preds = torch.cat(all_preds).cpu().numpy()
+
+            macro_f1 = f1_score(y_val_np, all_preds, average="macro", zero_division=0)
             
             if macro_f1 > best_macro_f1:
                 best_macro_f1 = macro_f1
@@ -147,7 +141,9 @@ def main():
     exp_dir = cfg.EXPERIMENTS_DIR / "E02_hyperparameter_tuning"
     exp_dir.mkdir(parents=True, exist_ok=True)
     
-    X_train, y_train, X_val, y_val = get_data(smoke_test=args.smoke_test)
+    X_train, y_train, X_val, y_val, meta = get_data(smoke_test=args.smoke_test)
+    logger.info(f"Tuning on data fingerprint {meta['fingerprint']} (policy={meta['feature_policy']}, "
+                f"canonicalize={meta['canonicalize_numeric_tokens']}) on {X_train.device}")
     
     pruner = optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=3)
     study = optuna.create_study(direction="maximize", study_name="CNN_GRU_Focal_Tuning", pruner=pruner)
@@ -162,7 +158,10 @@ def main():
         logger.info(f"Best Trial: {study.best_trial.number}")
         logger.info(f"Best Value (Macro-F1): {study.best_trial.value}")
         logger.info(f"Best Params: {study.best_trial.params}")
-        save_json(study.best_trial.params, exp_dir / "best_params.json")
+        save_json({**study.best_trial.params,
+                   "best_val_macro_f1": study.best_trial.value,
+                   "smoke_test": args.smoke_test,
+                   "preprocessing": preprocessing_record(meta)}, exp_dir / "best_params.json")
         
     # Save trial history
     trials_df = study.trials_dataframe()

@@ -183,6 +183,143 @@ def train_and_evaluate(experiment_id: str, target_col: str, task_type: str):
     logger.info(f"Finished {experiment_id}. Accuracy: {accuracy:.4f}")
     return metrics
 
+
+def train_xgb_gpu(experiment_id: str, target_col: str, task_type: str,
+                  n_estimators: int = 500, max_depth: int = 8, learning_rate: float = 0.1):
+    """Gradient-boosted tree baseline trained on the GPU.
+
+    Replaces the 200-tree RandomForest for new experiments: the RF used every CPU
+    core and several GB of RAM (and a 1.6 GB model file for multiclass), while
+    XGBoost's QuantileDMatrix keeps a ~1-byte-per-value copy on the GPU.
+    """
+    import xgboost as xgb
+    import torch
+    from datetime import datetime
+    from src.training import load_processed_data, preprocessing_record
+
+    logger.info(f"Starting {experiment_id} (XGBoost, GPU) for target: {target_col}")
+    exp_dir = RESULTS_DIR / "experiments" / experiment_id
+    exp_dir.mkdir(parents=True, exist_ok=True)
+
+    data, meta = load_processed_data(target_col)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    feature_names = meta["feature_names"]
+
+    params = {
+        "tree_method": "hist",
+        "device": device,
+        "max_depth": max_depth,
+        "learning_rate": learning_rate,
+        "seed": RANDOM_SEED,
+        "nthread": 2,  # keep the laptop responsive; the GPU does the heavy lifting
+    }
+    if task_type == "binary":
+        params.update(objective="binary:logistic", eval_metric="logloss")
+    else:
+        params.update(objective="multi:softprob", eval_metric="mlogloss",
+                      num_class=int(meta["n_classes"]))
+
+    dtrain = xgb.QuantileDMatrix(data["X_train"], label=data["y_train"])
+    dval = xgb.QuantileDMatrix(data["X_val"], label=data["y_val"], ref=dtrain)
+    X_test, y_test = data["X_test"], data["y_test"]
+    del data
+
+    logger.info(f"Training XGBoost on {device}...")
+    t0 = time.time()
+    booster = xgb.train(params, dtrain, num_boost_round=n_estimators,
+                        evals=[(dval, "val")], early_stopping_rounds=20, verbose_eval=50)
+    training_time = time.time() - t0
+    del dtrain, dval
+
+    logger.info("Evaluating on Test Set...")
+    dtest = xgb.DMatrix(X_test)
+    t1 = time.time()
+    y_prob = booster.predict(dtest, iteration_range=(0, booster.best_iteration + 1))
+    inference_time = time.time() - t1
+    y_pred = (y_prob > 0.5).astype(int) if task_type == "binary" else y_prob.argmax(axis=1)
+
+    accuracy = accuracy_score(y_test, y_pred)
+    avg_type = "binary" if task_type == "binary" else "macro"
+    precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average=avg_type, zero_division=0)
+    macro_f1 = f1_score(y_test, y_pred, average="macro", zero_division=0)
+    weighted_f1 = f1_score(y_test, y_pred, average="weighted", zero_division=0)
+    cm = confusion_matrix(y_test, y_pred)
+    fpr, fnr = None, None
+    if task_type == "binary":
+        tn, fp, fn, tp = cm.ravel()
+        fpr = fp / (fp + tn) if (fp + tn) > 0 else 0
+        fnr = fn / (fn + tp) if (fn + tp) > 0 else 0
+
+    model_path = exp_dir / "model.ubj"
+    booster.save_model(model_path)
+
+    record = {
+        "experiment_id": experiment_id,
+        "timestamp": datetime.now().isoformat(),
+        "model": "XGBoost-GPU",
+        "dataset": "Edge-IIoTset",
+        "feature_policy": meta["feature_policy"],
+        "split": "stratified_random",
+        "seed": RANDOM_SEED,
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+        "macro_f1": macro_f1,
+        "weighted_f1": weighted_f1,
+        "fpr": fpr,
+        "fnr": fnr,
+        "training_time": training_time,
+        "inference_latency": (inference_time / len(X_test)) * 1000,
+        "parameters": int(booster.best_iteration + 1),  # trees used
+        "model_size_mb": os.path.getsize(model_path) / (1024 * 1024),
+        "loss_type": params["objective"],
+        "canonicalize_numeric_tokens": meta["canonicalize_numeric_tokens"],
+        "device": device,
+        "hyperparameters": {"n_estimators": n_estimators, "best_iteration": int(booster.best_iteration),
+                            "max_depth": max_depth, "learning_rate": learning_rate},
+        "preprocessing": preprocessing_record(meta),
+        "features_used": feature_names,
+    }
+    save_json(record, exp_dir / "experiment_record.json")
+
+    csv_record = {k: v for k, v in record.items() if k not in ["features_used", "hyperparameters", "preprocessing"]}
+    registry_path = RESULTS_DIR / "experiment_registry.csv"
+    df_reg = pd.read_csv(registry_path) if registry_path.exists() else pd.DataFrame()
+    pd.concat([df_reg, pd.DataFrame([csv_record])], ignore_index=True).to_csv(registry_path, index=False)
+
+    labels = [meta["label_mapping"][str(i)] for i in range(int(meta["n_classes"]))]
+    report_dict = classification_report(y_test, y_pred, output_dict=True, zero_division=0,
+                                        labels=list(range(len(labels))), target_names=labels)
+    pd.DataFrame(report_dict).transpose().to_csv(exp_dir / "classification_report.csv")
+
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=task_type == "binary", fmt='d', cmap='Blues',
+                xticklabels=labels, yticklabels=labels)
+    plt.title(f"{experiment_id} Confusion Matrix")
+    plt.ylabel("True Label")
+    plt.xlabel("Predicted Label")
+    plt.savefig(exp_dir / "confusion_matrix.png", bbox_inches="tight")
+    plt.close()
+
+    gain = booster.get_score(importance_type="gain")
+    fi_df = pd.DataFrame({"feature": feature_names,
+                          "importance": [gain.get(f"f{i}", 0.0) for i in range(len(feature_names))]})
+    fi_df["importance"] /= fi_df["importance"].sum() or 1.0
+    fi_df = fi_df.sort_values(by="importance", ascending=False)
+    fi_df.to_csv(exp_dir / "feature_importance.csv", index=False)
+
+    plt.figure(figsize=(12, 8))
+    sns.barplot(data=fi_df.head(20), x="importance", y="feature", color="#3b82f6")
+    plt.title(f"Top 20 Features (gain) - {experiment_id}")
+    plt.tight_layout()
+    plt.savefig(exp_dir / "feature_importance.png")
+    plt.close()
+
+    logger.info(f"Finished {experiment_id}. Accuracy: {accuracy:.4f} | Macro-F1: {macro_f1:.4f}")
+    return record
+
+
 if __name__ == "__main__":
     import sys
     exp_id = sys.argv[1]

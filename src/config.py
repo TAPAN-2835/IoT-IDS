@@ -43,6 +43,14 @@ DEFAULT_TARGET_COL = "Attack_label"
 MULTICLASS_TARGET_COL = "Attack_type"
 FEATURE_POLICY = "operational"
 
+# Edge-IIoTset writes empty protocol fields as "0" in the Normal captures but
+# "0.0" in the attack captures (reversed for the HTTP fields). One-hot encoding
+# turns that formatting difference into a perfect label shortcut. When True,
+# numeric-looking tokens in string columns are canonicalised ("0" and "0.0"
+# both become "0.0"). Set False only to reproduce the pre-fix experiments.
+CANONICALIZE_NUMERIC_TOKENS = True
+MAX_CATEGORIES = 100  # string columns with more unique values are dropped
+
 for d in [INTERIM_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, AUDIT_DIR, EXPERIMENTS_DIR, FIGURES_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
@@ -59,7 +67,7 @@ TEST_RATIO = 0.15
 # ==========================================
 BATCH_SIZE = 8192
 LEARNING_RATE = 1e-3
-EPOCHS = 5
+EPOCHS = 15
 EARLY_STOPPING_PATIENCE = 3
 
 # ==========================================

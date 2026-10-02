@@ -1,3 +1,5 @@
+> **Correction (2026-10-02):** These runs used EPOCHS = 5, so the comparison is between undertrained models; the 15-epoch cross-entropy CNN-GRU (E08) already reached Macro-F1 0.644. The focal-loss conclusion is not supported; see the equal-epoch redo (C04-C06). See [LEAKAGE_FIX_AND_CLEAN_BASELINES.md](LEAKAGE_FIX_AND_CLEAN_BASELINES.md).
+
 # E03 - CLASS IMBALANCE EXPERIMENTS
 
 ## 1. Objective

@@ -1,3 +1,5 @@
+> **Correction (2026-10-02):** The focal-loss result compares 5-epoch runs and the E02 no_mqtt runs were 1-epoch smoke tests; see the corrected numbers. See [LEAKAGE_FIX_AND_CLEAN_BASELINES.md](LEAKAGE_FIX_AND_CLEAN_BASELINES.md).
+
 # PHASE 2 RESULTS SUMMARY
 
 ## 1. Experiments Completed

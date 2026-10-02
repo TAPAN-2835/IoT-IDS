@@ -23,6 +23,7 @@ models/*.keras
 models/*.h5
 results/experiments/**/*.pt
 results/experiments/**/*.joblib
+results/experiments/**/*.ubj
 
 # DO TRACK small JSON configurations and CSV metrics!
 !models/*.json

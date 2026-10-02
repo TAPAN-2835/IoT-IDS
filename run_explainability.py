@@ -20,10 +20,13 @@ def main():
     logger.info("Phase 4: SHAP Explainability Analysis")
     logger.info("=" * 60)
 
+    # Each model is explained only with the exact processed data it was trained on
+    # (checked via the fingerprint in its experiment_record.json). Run this right
+    # after `python run_clean_baselines.py --stage binary`, before the multiclass
+    # stage overwrites data/processed/. The older E03/E04/E05 models predate
+    # feature tracking and are refused rather than explained with the wrong data.
     experiments = [
-        ("E05_cnn_gru_no_mqtt", "CNN-GRU", "binary"),   # Primary: proposed model (ablated)
-        ("E03_cnn1d_binary",   "1D-CNN",  "binary"),   # Ablation: CNN only
-        ("E04_gru_binary",     "GRU",     "binary"),   # Ablation: GRU only
+        ("C02_cnn_gru_binary_clean", "CNN-GRU", "binary"),   # Proposed model, empty-token artefact removed
     ]
 
     for exp_id, model_name, task in experiments:

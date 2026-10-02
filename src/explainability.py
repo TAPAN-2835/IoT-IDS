@@ -23,6 +23,7 @@ import shap
 from src import config as cfg
 from src.utils import setup_logger
 from src.models import CNN1D, GRUBaseline, CNN_GRU
+from src.preprocessing import load_processed_metadata
 
 logger = setup_logger(__name__)
 
@@ -31,26 +32,62 @@ logger = setup_logger(__name__)
 # Feature name helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _load_feature_names(input_dim: int) -> list[str]:
-    """Load post-OHE feature names from feature_columns.json."""
-    path = cfg.MODELS_DIR / "feature_columns.json"
-    if path.exists():
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        names = data.get("features", [])
-        if len(names) == input_dim:
-            return names
-    return [f"feature_{i}" for i in range(input_dim)]
+def _check_data_matches_experiment(experiment_id: str, exp_dir, meta: dict) -> None:
+    """Refuse to explain a model with data it was not trained on.
+
+    CNN-GRU weights do not depend on the input width, so a model trained on one
+    feature set loads without error on another and SHAP then attributes the wrong
+    columns (this is how a no-MQTT model was reported as relying on mqtt.topic).
+    """
+    record_path = exp_dir / "experiment_record.json"
+    if not record_path.exists():
+        raise FileNotFoundError(f"{record_path} not found; cannot verify which data {experiment_id} used.")
+    with open(record_path, "r", encoding="utf-8") as f:
+        record = json.load(f)
+
+    expected = record.get("preprocessing", {}).get("fingerprint")
+    if expected is not None:
+        if expected != meta["fingerprint"]:
+            prep = record["preprocessing"]
+            raise RuntimeError(
+                f"{experiment_id} was trained on data fingerprint {expected} "
+                f"(target={prep['target_col']}, policy={prep['feature_policy']}, "
+                f"canonicalize={prep['canonicalize_numeric_tokens']}) but data/processed/ holds "
+                f"{meta['fingerprint']} (target={meta['target_col']}, policy={meta['feature_policy']}). "
+                "Re-run preprocessing with the experiment's settings first.")
+        return
+
+    features_used = record.get("features_used")
+    if features_used:
+        if list(features_used) != list(meta["feature_names"]):
+            raise RuntimeError(
+                f"{experiment_id} was trained on {len(features_used)} features but data/processed/ has "
+                f"{meta['n_features']} different ones (policy={meta['feature_policy']}). "
+                "Re-run preprocessing with the experiment's settings first.")
+        return
+
+    raise RuntimeError(
+        f"{experiment_id} predates feature tracking, so its training data cannot be verified. "
+        "Retrain it with the current pipeline before explaining it.")
 
 
-def _clean_name(name: str, maxlen: int = 32) -> str:
-    """Strip sklearn ColumnTransformer prefixes and OHE suffixes for readability."""
-    name = name.replace("num__", "").replace("cat__", "")
-    # Remove trailing _0.0 / _1.0 / _missing OHE suffixes
-    import re
-    name = re.sub(r'_[\d\.]+$', '', name)
-    name = re.sub(r'_missing$', '', name)
-    return name[:maxlen] if len(name) > maxlen else name
+def _display_names(feature_names: list[str], categorical_columns: list[str], maxlen: int = 40) -> list[str]:
+    """Readable, still-unique names: "cat__mqtt.topic_0.0" -> "mqtt.topic=0.0".
+
+    The one-hot category is kept on purpose; stripping it hid that the top
+    features were "empty written as 0" vs "empty written as 0.0".
+    """
+    by_length = sorted(categorical_columns, key=len, reverse=True)
+    names = []
+    for name in feature_names:
+        if name.startswith("cat__"):
+            rest = name[len("cat__"):]
+            col = next((c for c in by_length if rest.startswith(c + "_")), None)
+            name = f"{col}={rest[len(col) + 1:]}" if col else rest
+        else:
+            name = name.replace("num__", "")
+        names.append(name if len(name) <= maxlen else name[:maxlen - 1] + "…")
+    return names
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -69,15 +106,12 @@ def _load_model(model_name: str, input_dim: int, num_classes: int,
     else:
         raise ValueError(f"Unknown model name: {model_name!r}")
 
-    # Try experiment dir first, then global models dir
-    candidates = [
-        exp_dir / "best_model.pt",
-        cfg.MODELS_DIR / "cnn_gru_final.pt",
-    ]
-    path = next((p for p in candidates if p.exists()), None)
-    if path is None:
+    # Only the experiment's own checkpoint: models/cnn_gru_final.pt is overwritten by
+    # every CNN-GRU run, so falling back to it would explain an unrelated model.
+    path = exp_dir / "best_model.pt"
+    if not path.exists():
         raise FileNotFoundError(
-            f"No trained model found for {model_name}. "
+            f"No trained model found at {path}. "
             "Run the corresponding training script first."
         )
     model.load_state_dict(torch.load(path, map_location="cpu"))
@@ -155,17 +189,18 @@ def run_shap_analysis(
     exp_dir = cfg.EXPERIMENTS_DIR / experiment_id
     exp_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── Load data ──────────────────────────────────────────────────────────────
+    # ── Verify, then load data ─────────────────────────────────────────────────
+    meta = load_processed_metadata()
+    _check_data_matches_experiment(experiment_id, exp_dir, meta)
+
     logger.info("Loading processed parquet datasets…")
     X_train = pd.read_parquet(cfg.PROCESSED_DATA_DIR / "X_train.parquet").values.astype(np.float32)
     X_test  = pd.read_parquet(cfg.PROCESSED_DATA_DIR / "X_test.parquet").values.astype(np.float32)
-    y_test  = pd.read_parquet(cfg.PROCESSED_DATA_DIR / "y_test.parquet").values.squeeze()
 
     input_dim = X_train.shape[1]
-    num_classes = 1 if task_type == "binary" else int(len(np.unique(y_test)))
+    num_classes = 1 if task_type == "binary" else int(meta["n_classes"])
 
-    raw_names    = _load_feature_names(input_dim)
-    display_names = [_clean_name(n) for n in raw_names]
+    display_names = _display_names(meta["feature_names"], meta.get("categorical_columns", []))
 
     # ── Load model ─────────────────────────────────────────────────────────────
     model = _load_model(model_name, input_dim, num_classes, exp_dir)

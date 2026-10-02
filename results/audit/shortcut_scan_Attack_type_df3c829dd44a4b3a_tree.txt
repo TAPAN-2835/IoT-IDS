@@ -1,0 +1,25 @@
+target=Attack_type policy=operational canonicalize=True
+depth-3 tree balanced accuracy (val sample): 0.3205
+
+|--- num__tcp.checksum <= -1.40
+|   |--- num__icmp.checksum <= -0.20
+|   |   |--- num__udp.stream <= -0.20
+|   |   |   |--- class: 7
+|   |   |--- num__udp.stream >  -0.20
+|   |   |   |--- class: 4
+|   |--- num__icmp.checksum >  -0.20
+|   |   |--- num__icmp.seq_le <= -0.21
+|   |   |   |--- class: 5
+|   |   |--- num__icmp.seq_le >  -0.21
+|   |   |   |--- class: 2
+|--- num__tcp.checksum >  -1.40
+|   |--- num__http.content_length <= -0.05
+|   |   |--- num__tcp.ack <= 1.13
+|   |   |   |--- class: 7
+|   |   |--- num__tcp.ack >  1.13
+|   |   |   |--- class: 3
+|   |--- num__http.content_length >  -0.05
+|   |   |--- num__tcp.ack <= -0.14
+|   |   |   |--- class: 8
+|   |   |--- num__tcp.ack >  -0.14
+|   |   |   |--- class: 13
