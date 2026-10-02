@@ -185,7 +185,8 @@ def train_and_evaluate(experiment_id: str, target_col: str, task_type: str):
 
 
 def train_xgb_gpu(experiment_id: str, target_col: str, task_type: str,
-                  n_estimators: int = 500, max_depth: int = 8, learning_rate: float = 0.1):
+                  n_estimators: int = 500, max_depth: int = 8, learning_rate: float = 0.1,
+                  seed: int = RANDOM_SEED):
     """Gradient-boosted tree baseline trained on the GPU.
 
     Replaces the 200-tree RandomForest for new experiments: the RF used every CPU
@@ -210,7 +211,7 @@ def train_xgb_gpu(experiment_id: str, target_col: str, task_type: str,
         "device": device,
         "max_depth": max_depth,
         "learning_rate": learning_rate,
-        "seed": RANDOM_SEED,
+        "seed": seed,
         "nthread": 2,  # keep the laptop responsive; the GPU does the heavy lifting
     }
     if task_type == "binary":
@@ -260,7 +261,7 @@ def train_xgb_gpu(experiment_id: str, target_col: str, task_type: str,
         "dataset": "Edge-IIoTset",
         "feature_policy": meta["feature_policy"],
         "split": "stratified_random",
-        "seed": RANDOM_SEED,
+        "seed": seed,
         "accuracy": accuracy,
         "precision": precision,
         "recall": recall,

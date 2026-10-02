@@ -106,6 +106,70 @@ Findings:
   Macro-F1). Its advantage is size (0.09 MB vs 8.2 MB). The honest framing is a size/accuracy
   trade-off, and the CNN-GRU needs tuning before it is competitive.
 
+## 4b. Strict feature policy: removing per-packet identifier fields (S-series)
+
+After the empty-token fix, the strongest single features were raw per-packet values. The `strict`
+policy (`results/audit/strict_feature_policy.csv`, created by `run_clean_baselines.py --policy strict`)
+removes 7 fields that locate a packet inside one capture rather than describe behaviour:
+`tcp.seq`, `tcp.ack`, `tcp.ack_raw`, `tcp.checksum`, `icmp.checksum`, `icmp.seq_le`, `udp.stream`.
+
+| Task | Model | Clean (C) Macro-F1 | Strict (S) Macro-F1 | Strict accuracy |
+|---|---|---|---|---|
+| Binary | XGBoost | 0.960 | **0.869** | 0.907 |
+| Binary | CNN-GRU | 0.880 | **0.858** | 0.900 |
+| Multiclass | XGBoost | 0.823 | **0.429** | 0.846 |
+| Multiclass | CNN-GRU (CE) | 0.423 | **0.227** | 0.815 |
+
+Shortcut scan under strict: binary best single feature 0.70, depth-3 tree 0.73; multiclass depth-3
+tree 0.19.
+
+Per-class F1 under strict (XGBoost): Normal 0.94, Vulnerability_scanner 0.91, DDoS_TCP 0.85,
+DDoS_ICMP 0.66, Ransomware 0.53, MITM 0.46, Backdoor 0.45, DDoS_HTTP 0.44, Password 0.29,
+SQL_injection 0.29, Uploading 0.21, XSS 0.18, **DDoS_UDP 0.17**, **Port_Scanning 0.05**,
+Fingerprinting 0.00.
+
+What this means:
+
+* **Binary detection is real.** It survives removal of the identifier fields with a small loss
+  (0.87 / 0.86 Macro-F1). XGBoost gain: `http.content_length` 0.48, `tcp.flags` 0.16,
+  `mqtt.hdrflags` 0.15, `tcp.connection.syn` 0.12. On these features the CNN-GRU is within
+  ~1 point of XGBoost.
+* `mqtt.hdrflags` is still a composition shortcut: every MQTT packet in the dataset is Normal, so
+  "is this MQTT" partly answers "is this benign". Combining strict with the E05 no-MQTT ablation
+  would measure how much of the remaining score depends on it.
+* **Attack-type classification mostly does not survive.** Most of the clean multiclass score came
+  from the identifier fields. Floods and scans (DDoS_UDP, Port_Scanning) are defined by packet
+  *rate*, which a single-packet row cannot show; the stream index and sequence counters were
+  standing in for "which capture file is this".
+* There is no timing feature to recover the rate: `udp.time_delta` is 0 for every attack row in
+  the dataset (only Normal and MITM have non-zero values), and per-packet timestamps were dropped
+  as leakage.
+* Recommended framing: report binary results under the strict policy as the main result, and
+  present multiclass as a documented limitation of packet-level Edge-IIoTset data (flow/window
+  features would be needed), with the clean-vs-strict gap as evidence.
+
+## 4c. Loss comparison over 3 seeds (strict policy, multiclass CNN-GRU, 15 epochs)
+
+`python run_clean_baselines.py --policy strict --study losses --seeds 42 7 2024` (IDs `L_strict_<loss>_s<seed>`).
+`sqrt_weighted` = class weights `sqrt(N / (K * count))`: the raw inverse-frequency weights that
+collapsed C05 span ~1600:1, the square root ~40:1.
+
+| Loss | Macro-F1 per seed (42 / 7 / 2024) | Macro-F1 mean ± sd | Accuracy mean |
+|---|---|---|---|
+| Cross-entropy | 0.227 / 0.261 / 0.227 | 0.238 ± 0.020 | 0.822 |
+| Focal (γ=2) | 0.245 / 0.254 / 0.261 | 0.254 ± 0.008 | 0.827 |
+| **Sqrt class weights** | 0.299 / 0.355 / 0.357 | **0.337 ± 0.033** | 0.822 |
+
+* Square-root class weighting is better than both alternatives on every seed (its worst run beats
+  the best cross-entropy and focal runs) at no cost in accuracy. It is the loss to use from here.
+* Focal loss gives at most a small gain over cross-entropy, so the original E03 claim does not hold.
+* Mean per-class F1 with sqrt weights: it is the only loss that detects MITM (0.32), DDoS_HTTP
+  (0.23), Port_Scanning (0.13) and Ransomware (0.11) at all; DDoS_UDP is better with plain CE
+  (0.50 vs 0.17). Fingerprinting stays at 0 for every loss.
+* The seed-42 cross-entropy run reproduced S04 exactly (0.2268), so runs are deterministic for a
+  given seed.
+* Even the best CNN-GRU (0.34) is below strict XGBoost (0.43) on multiclass.
+
 ## 5. Corrections to earlier claims
 
 | Earlier claim | Status |
@@ -147,20 +211,21 @@ python audit_shortcuts.py --raw                       # empty-token evidence tab
 python run_clean_baselines.py --stage binary          # preprocess + scan + C01, C02
 python run_explainability.py                          # SHAP for C02 (run before the next stage)
 python run_clean_baselines.py --stage multiclass      # preprocess + scan + C03-C06
+python run_clean_baselines.py --policy strict         # S01-S04
+python run_clean_baselines.py --policy strict --study losses --seeds 42 7 2024
+python watch_dashboard.py                             # live terminal dashboard (separate window)
 python run_E02_hyperparameter_tuning.py               # Optuna on the clean multiclass data (GPU)
 ```
 
 ## 7. What is still open
 
-1. **Capture-identifier features.** After the fix, the strongest single features are raw per-packet
-   values: `tcp.seq`, `tcp.ack_raw`, `tcp.checksum`, `udp.stream` (a stream index). These identify
-   a capture more than a behaviour. Next experiment: a stricter feature policy without them, and
-   compare.
+1. ~~Capture-identifier features~~: done, see 4b (strict policy).
 2. **Missed attacks.** Binary FNR is 11% (XGBoost) and 31% (CNN-GRU). In multiclass, the CNN-GRU
    fails on the web attacks, Ransomware, MITM and Fingerprinting (section 4). Consider a decision
    threshold tuned on validation for binary.
-3. **Class-weighted loss** needs softened weights (sqrt inverse frequency or clipped) and a re-run.
-4. **Multiple seeds** for every comparison before claiming one loss or model is better.
+3. ~~Class-weighted loss~~ and ~~multiple seeds~~: done for the loss comparison, see 4c.
+4. **Strict + no-MQTT binary run** to measure how much of the binary score depends on
+   `mqtt.hdrflags` (all MQTT traffic is Normal).
 5. **Optuna tuning** of the CNN-GRU on the clean multiclass data (script updated for the GPU, not
    yet run; plug the laptop in, it runs about 20 trials).
 6. **Compression and edge benchmark (E08/E09)** after the model is final.

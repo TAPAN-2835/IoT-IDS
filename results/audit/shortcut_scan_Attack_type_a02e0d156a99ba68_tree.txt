@@ -1,0 +1,22 @@
+target=Attack_type policy=strict canonicalize=True
+depth-3 tree balanced accuracy (val sample): 0.1930
+
+|--- num__tcp.flags <= -1.63
+|   |--- num__dns.qry.name <= 0.65
+|   |   |--- num__arp.opcode <= 7.25
+|   |   |   |--- class: 2
+|   |   |--- num__arp.opcode >  7.25
+|   |   |   |--- class: 7
+|   |--- num__dns.qry.name >  0.65
+|   |   |--- class: 4
+|--- num__tcp.flags >  -1.63
+|   |--- num__http.content_length <= -0.05
+|   |   |--- num__tcp.connection.syn <= 1.68
+|   |   |   |--- class: 7
+|   |   |--- num__tcp.connection.syn >  1.68
+|   |   |   |--- class: 7
+|   |--- num__http.content_length >  -0.05
+|   |   |--- num__http.content_length <= 16.30
+|   |   |   |--- class: 13
+|   |   |--- num__http.content_length >  16.30
+|   |   |   |--- class: 8

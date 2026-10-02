@@ -1,0 +1,77 @@
+feature,importance
+num__http.content_length,0.4752734237215602
+num__tcp.flags,0.15625592256535317
+num__mqtt.hdrflags,0.15119241204674175
+num__tcp.connection.syn,0.12469177404490085
+cat__http.request.method_0.0,0.02245564520126262
+num__dns.retransmission,0.0185534354465178
+num__tcp.connection.rst,0.016665016790910463
+num__tcp.len,0.011013766317268267
+num__http.response,0.00982911236874961
+num__tcp.connection.fin,0.006092463776171966
+num__arp.opcode,0.005959614186148158
+num__dns.qry.name,0.0006718613922083891
+num__dns.retransmit_request,0.0006593539708731963
+num__mbtcp.len,0.000586590722836883
+num__dns.qry.qu,9.958640608916745e-05
+num__tcp.connection.synack,2.0421601557483527e-08
+num__tcp.flags.ack,6.208060405261506e-10
+num__icmp.unused,0.0
+num__arp.hw.size,0.0
+num__dns.qry.type,0.0
+num__mqtt.conflags,0.0
+num__mqtt.conflag.cleansess,0.0
+num__mqtt.msg_decoded_as,0.0
+num__mqtt.len,0.0
+num__mqtt.msgtype,0.0
+num__mqtt.proto_len,0.0
+num__mqtt.topic_len,0.0
+num__dns.retransmit_request_in,0.0
+num__mqtt.ver,0.0
+cat__http.request.method_GET,0.0
+cat__http.request.method_OPTIONS,0.0
+cat__http.request.method_POST,0.0
+cat__http.request.method_PROPFIND,0.0
+cat__http.request.method_PUT,0.0
+cat__http.request.method_SEARCH,0.0
+cat__http.request.method_TRACE,0.0
+cat__http.referer_() { _; } >_[$($())] { echo 93e4r0-CVE-2014-6278: true; echo;echo; },0.0
+cat__http.referer_0.0,0.0
+cat__http.referer_127.0.0.1,0.0
+cat__http.referer_TESTING_PURPOSES_ONLY,0.0
+cat__http.request.version_-a HTTP/1.1,0.0
+cat__http.request.version_-al&ABSOLUTE_PATH_STUDIP=http://cirt.net/rfiinc.txt?? HTTP/1.1,0.0
+cat__http.request.version_-al&_PHPLIB[libdir]=http://cirt.net/rfiinc.txt?? HTTP/1.1,0.0
+cat__http.request.version_/etc/passwd|?data=Download HTTP/1.1,0.0
+cat__http.request.version_0.0,0.0
+cat__http.request.version_> HTTP/1.1,0.0
+cat__http.request.version_HTTP/1.0,0.0
+cat__http.request.version_HTTP/1.1,0.0
+"cat__http.request.version_Src=javascript:alert('Vulnerable')><Img Src=\"" HTTP/1.1",0.0
+cat__http.request.version_name=a><input name=i value=XSS>&lt;script>alert('Vulnerable')</script> HTTP/1.1,0.0
+"cat__http.request.version_script>alert(1)/script><\"" HTTP/1.1",0.0
+cat__dns.qry.name.len_0.0,0.0
+cat__dns.qry.name.len_0.debian.pool.ntp.org,0.0
+cat__dns.qry.name.len_1.0,0.0
+cat__dns.qry.name.len_1.debian.pool.ntp.org,0.0
+cat__dns.qry.name.len_2.debian.pool.ntp.org,0.0
+cat__dns.qry.name.len_3.debian.pool.ntp.org,0.0
+cat__dns.qry.name.len__googlecast._tcp.local,0.0
+cat__dns.qry.name.len_null-null.local,0.0
+cat__dns.qry.name.len_raspberrypi.local,0.0
+cat__mqtt.conack.flags_0.0,0.0
+cat__mqtt.conack.flags_0x00000000,0.0
+cat__mqtt.conack.flags_1461073.0,0.0
+cat__mqtt.conack.flags_1461074.0,0.0
+cat__mqtt.conack.flags_1461383.0,0.0
+cat__mqtt.conack.flags_1461384.0,0.0
+cat__mqtt.conack.flags_1461589.0,0.0
+cat__mqtt.conack.flags_1461591.0,0.0
+cat__mqtt.conack.flags_1471198.0,0.0
+cat__mqtt.conack.flags_1471199.0,0.0
+cat__mqtt.conack.flags_1574358.0,0.0
+cat__mqtt.conack.flags_1574359.0,0.0
+cat__mqtt.protoname_0.0,0.0
+cat__mqtt.protoname_MQTT,0.0
+cat__mqtt.topic_0.0,0.0
+cat__mqtt.topic_Temperature_and_Humidity,0.0

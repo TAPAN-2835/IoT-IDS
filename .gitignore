@@ -49,6 +49,7 @@ pipeline.log
 *.log
 pipeline_status.json
 training_progress.json
+run_status.json
 
 # Ad-hoc stdout/stderr redirects from background runs (e.g. nohup ... > x.out)
 *.out

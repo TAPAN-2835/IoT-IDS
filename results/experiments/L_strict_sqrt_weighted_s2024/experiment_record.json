@@ -1,5 +1,24 @@
 {
-    "features": [
+    "experiment_id": "L_strict_sqrt_weighted_s2024",
+    "timestamp": "2026-10-02T13:21:18.292625",
+    "model": "CNN-GRU",
+    "dataset": "Edge-IIoTset",
+    "feature_policy": "strict",
+    "split": "stratified_random",
+    "seed": 2024,
+    "accuracy": 0.8245949753815929,
+    "precision": 0.5979553526238122,
+    "recall": 0.3591884017493459,
+    "f1": 0.35660479166765635,
+    "macro_f1": 0.35660479166765635,
+    "weighted_f1": 0.7859030110766533,
+    "fpr": null,
+    "fnr": null,
+    "training_time": 117.77780151367188,
+    "inference_latency": 0.0018274161936979439,
+    "parameters": 21583,
+    "model_size_mb": 0.08751392364501953,
+    "features_used": [
         "num__arp.opcode",
         "num__arp.hw.size",
         "num__icmp.unused",
@@ -77,5 +96,22 @@
         "cat__mqtt.protoname_MQTT",
         "cat__mqtt.topic_0.0",
         "cat__mqtt.topic_Temperature_and_Humidity"
-    ]
+    ],
+    "loss_type": "sqrt_weighted",
+    "canonicalize_numeric_tokens": true,
+    "epochs_run": 15,
+    "device": "cuda",
+    "hyperparameters": {
+        "batch_size": 8192,
+        "learning_rate": 0.001,
+        "epochs": 15
+    },
+    "preprocessing": {
+        "fingerprint": "a02e0d156a99ba68",
+        "target_col": "Attack_type",
+        "feature_policy": "strict",
+        "canonicalize_numeric_tokens": true,
+        "split_seed": 42,
+        "n_features": 77
+    }
 }

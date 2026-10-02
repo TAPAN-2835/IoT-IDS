@@ -79,19 +79,18 @@ def iterate_batches(X, y, batch_size, shuffle=False):
 def _write_progress(**kwargs):
     """Persist live epoch/loss progress to disk so the dashboard can poll it."""
     try:
+        from src.run_status import atomic_write_json
         payload = {"updated_at": time.strftime("%H:%M:%S"), **kwargs}
-        tmp_path = PROGRESS_PATH.with_suffix(".tmp")
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(payload, f)
-        os.replace(tmp_path, PROGRESS_PATH)
+        atomic_write_json(PROGRESS_PATH, payload)
     except Exception as e:
         logger.warning(f"Could not write training_progress.json: {e}")
 
 
-def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="ce", epochs=None):
+def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="ce", epochs=None, seed=None):
     epochs = epochs or cfg.EPOCHS
+    seed = cfg.GLOBAL_SEED if seed is None else seed
     logger.info(f"Starting {experiment_id} using {model_name} on {target_col} ({epochs} epochs, loss={loss_type})")
-    cfg.set_seeds()
+    cfg.set_seeds(seed)
     _write_progress(experiment_id=experiment_id, model=model_name, phase="loading_data",
                      epoch=0, total_epochs=epochs)
 
@@ -133,9 +132,13 @@ def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="
 
         if loss_type == "ce":
             criterion = nn.CrossEntropyLoss()
-        elif loss_type == "class_weighted":
+        elif loss_type in ("class_weighted", "sqrt_weighted"):
             class_counts = np.bincount(y_train)
             weights = len(y_train) / (num_classes * class_counts)
+            if loss_type == "sqrt_weighted":
+                # Raw inverse-frequency weights span ~1600:1 on this data and made
+                # training collapse (C05); the square root keeps the ratio near 40:1.
+                weights = np.sqrt(weights)
             criterion = nn.CrossEntropyLoss(weight=torch.tensor(weights, dtype=torch.float32).to(device))
         elif loss_type == "focal":
             criterion = FocalLoss(gamma=2.0)
@@ -309,7 +312,7 @@ def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="
         "dataset": "Edge-IIoTset",
         "feature_policy": meta["feature_policy"],
         "split": "stratified_random",
-        "seed": cfg.GLOBAL_SEED,
+        "seed": seed,
         "accuracy": accuracy,
         "precision": precision,
         "recall": recall,
