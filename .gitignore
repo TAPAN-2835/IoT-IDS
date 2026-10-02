@@ -53,3 +53,4 @@ run_status.json
 
 # Ad-hoc stdout/stderr redirects from background runs (e.g. nohup ... > x.out)
 *.out
+data/processed_ciciot*/
