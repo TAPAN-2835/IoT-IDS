@@ -22,7 +22,7 @@ import shap
 
 from src import config as cfg
 from src.utils import setup_logger
-from src.models import CNN1D, GRUBaseline, CNN_GRU
+from src.models import CNN1D, GRUBaseline, CNN_GRU, MLP
 from src.preprocessing import load_processed_metadata
 
 logger = setup_logger(__name__)
@@ -44,6 +44,11 @@ def _check_data_matches_experiment(experiment_id: str, exp_dir, meta: dict) -> N
         raise FileNotFoundError(f"{record_path} not found; cannot verify which data {experiment_id} used.")
     with open(record_path, "r", encoding="utf-8") as f:
         record = json.load(f)
+
+    if record.get("dropped_features"):
+        raise RuntimeError(
+            f"{experiment_id} was trained with {len(record['dropped_features'])} features removed "
+            "(a feature-removal experiment); SHAP on the full feature set would misalign its inputs.")
 
     expected = record.get("preprocessing", {}).get("fingerprint")
     if expected is not None:
@@ -101,8 +106,11 @@ def _load_model(model_name: str, input_dim: int, num_classes: int,
         model = CNN1D(input_dim, num_classes)
     elif model_name == "GRU":
         model = GRUBaseline(input_dim, num_classes)
+    elif model_name == "MLP":
+        model = MLP(input_dim, num_classes)
     elif model_name == "CNN-GRU":
-        model = CNN_GRU(input_dim, num_classes)
+        # Tuned models store their layer sizes in the experiment record.
+        model = CNN_GRU(input_dim, num_classes, **_architecture_kwargs(exp_dir))
     else:
         raise ValueError(f"Unknown model name: {model_name!r}")
 
@@ -118,6 +126,15 @@ def _load_model(model_name: str, input_dim: int, num_classes: int,
     model.eval()
     logger.info(f"Loaded model from {path}")
     return model
+
+
+def _architecture_kwargs(exp_dir) -> dict:
+    record_path = exp_dir / "experiment_record.json"
+    if not record_path.exists():
+        return {}
+    with open(record_path, "r", encoding="utf-8") as f:
+        hyper = json.load(f).get("hyperparameters", {})
+    return {k: hyper[k] for k in ("conv_filters", "kernel_size", "gru_units", "dense_units", "dropout") if k in hyper}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -276,7 +293,7 @@ def run_shap_analysis(
     # ── Persist importance CSV ─────────────────────────────────────────────────
     mean_abs = np.abs(sv).mean(axis=0)
     shap_df = (
-        pd.DataFrame({"feature": display_names, "mean_abs_shap": mean_abs})
+        pd.DataFrame({"feature": display_names, "raw_feature": meta["feature_names"], "mean_abs_shap": mean_abs})
         .sort_values("mean_abs_shap", ascending=False)
         .reset_index(drop=True)
     )

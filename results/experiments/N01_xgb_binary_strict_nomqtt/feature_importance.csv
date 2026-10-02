@@ -1,0 +1,52 @@
+feature,importance
+num__http.content_length,0.478271235098121
+num__tcp.flags,0.21196853726932927
+num__tcp.connection.syn,0.13243502834984686
+cat__http.request.method_0.0,0.045375828021968906
+num__tcp.connection.rst,0.03929215223887563
+num__http.response,0.03480440054645186
+num__dns.retransmission,0.022646334345353555
+num__tcp.len,0.01400504643060772
+num__tcp.connection.fin,0.012602603710073844
+num__arp.opcode,0.00677069580399706
+num__dns.retransmit_request,0.0006868087441131073
+num__dns.qry.name,0.000675336553646673
+num__mbtcp.len,0.00034338253984844366
+num__dns.qry.qu,0.00012142833504947158
+num__tcp.connection.synack,1.178282982064171e-06
+num__tcp.flags.ack,3.7297345953769355e-09
+num__icmp.unused,0.0
+num__dns.qry.type,0.0
+num__arp.hw.size,0.0
+num__dns.retransmit_request_in,0.0
+cat__http.request.method_GET,0.0
+cat__http.request.method_OPTIONS,0.0
+cat__http.request.method_POST,0.0
+cat__http.request.method_PROPFIND,0.0
+cat__http.request.method_PUT,0.0
+cat__http.request.method_SEARCH,0.0
+cat__http.request.method_TRACE,0.0
+cat__http.referer_() { _; } >_[$($())] { echo 93e4r0-CVE-2014-6278: true; echo;echo; },0.0
+cat__http.referer_0.0,0.0
+cat__http.referer_127.0.0.1,0.0
+cat__http.referer_TESTING_PURPOSES_ONLY,0.0
+cat__http.request.version_-a HTTP/1.1,0.0
+cat__http.request.version_-al&ABSOLUTE_PATH_STUDIP=http://cirt.net/rfiinc.txt?? HTTP/1.1,0.0
+cat__http.request.version_-al&_PHPLIB[libdir]=http://cirt.net/rfiinc.txt?? HTTP/1.1,0.0
+cat__http.request.version_/etc/passwd|?data=Download HTTP/1.1,0.0
+cat__http.request.version_0.0,0.0
+cat__http.request.version_> HTTP/1.1,0.0
+cat__http.request.version_HTTP/1.0,0.0
+cat__http.request.version_HTTP/1.1,0.0
+"cat__http.request.version_Src=javascript:alert('Vulnerable')><Img Src=\"" HTTP/1.1",0.0
+cat__http.request.version_name=a><input name=i value=XSS>&lt;script>alert('Vulnerable')</script> HTTP/1.1,0.0
+"cat__http.request.version_script>alert(1)/script><\"" HTTP/1.1",0.0
+cat__dns.qry.name.len_0.0,0.0
+cat__dns.qry.name.len_0.debian.pool.ntp.org,0.0
+cat__dns.qry.name.len_1.0,0.0
+cat__dns.qry.name.len_1.debian.pool.ntp.org,0.0
+cat__dns.qry.name.len_2.debian.pool.ntp.org,0.0
+cat__dns.qry.name.len_3.debian.pool.ntp.org,0.0
+cat__dns.qry.name.len__googlecast._tcp.local,0.0
+cat__dns.qry.name.len_null-null.local,0.0
+cat__dns.qry.name.len_raspberrypi.local,0.0

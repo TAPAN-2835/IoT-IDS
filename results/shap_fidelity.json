@@ -1,0 +1,26 @@
+{
+    "final_model": "F_strict_no_mqtt_binary_best_s42",
+    "baseline_macro_f1": 0.8584029238444397,
+    "top5_shap": [
+        "num__tcp.flags",
+        "num__tcp.connection.rst",
+        "num__tcp.flags.ack",
+        "num__tcp.len",
+        "num__tcp.connection.fin"
+    ],
+    "random5": [
+        "cat__http.request.version_HTTP/1.1",
+        "cat__http.request.method_PUT",
+        "cat__http.request.version_-al&_PHPLIB[libdir]=http://cirt.net/rfiinc.txt?? HTTP/1.1",
+        "num__http.content_length",
+        "cat__dns.qry.name.len_raspberrypi.local"
+    ],
+    "FID_drop_top5_shap": {
+        "macro_f1": 0.6049053658279978,
+        "drop": 0.2534975580164419
+    },
+    "FID_drop_random5": {
+        "macro_f1": 0.8583513456958889,
+        "drop": 5.157814855083487e-05
+    }
+}

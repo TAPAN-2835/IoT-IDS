@@ -17,7 +17,9 @@ from src.utils import setup_logger, save_json, load_json
 
 logger = setup_logger(__name__)
 
-PROCESSED_METADATA_PATH = cfg.PROCESSED_DATA_DIR / "metadata.json"
+def processed_metadata_path():
+    """metadata.json next to the processed splits (follows cfg.PROCESSED_DATA_DIR at call time)."""
+    return cfg.PROCESSED_DATA_DIR / "metadata.json"
 
 
 def get_operational_features() -> list:
@@ -126,11 +128,12 @@ def feature_fingerprint(feature_names, target_col, feature_policy, canonicalized
 
 def load_processed_metadata() -> dict:
     """Describe what data/processed/ currently holds (target, policy, features)."""
-    if not PROCESSED_METADATA_PATH.exists():
+    path = processed_metadata_path()
+    if not path.exists():
         raise FileNotFoundError(
-            f"{PROCESSED_METADATA_PATH} not found: data/processed/ was produced by an older "
+            f"{path} not found: data/processed/ was produced by an older "
             "pipeline version. Re-run preprocessing (run_preprocessing_pipeline) first.")
-    return load_json(PROCESSED_METADATA_PATH)
+    return load_json(path)
 
 
 def run_preprocessing_pipeline(target_col: str = None) -> dict:
@@ -252,7 +255,7 @@ def run_preprocessing_pipeline(target_col: str = None) -> dict:
         "fingerprint": feature_fingerprint(feature_names, target_col, cfg.FEATURE_POLICY,
                                            cfg.CANONICALIZE_NUMERIC_TOKENS),
     }
-    save_json(metadata, PROCESSED_METADATA_PATH)
+    save_json(metadata, processed_metadata_path())
     _log_memory("done")
     logger.info(f"Preprocessing pipeline completed successfully. Fingerprint: {metadata['fingerprint']}")
     return metadata

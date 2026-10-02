@@ -1,0 +1,22 @@
+target=category policy=ciciot_flow canonicalize=False
+depth-3 tree balanced accuracy (val sample): 0.4640
+
+|--- packet_count <= -0.97
+|   |--- https <= 0.15
+|   |   |--- min_packet_size <= -0.39
+|   |   |   |--- class: 6
+|   |   |--- min_packet_size >  -0.39
+|   |   |   |--- class: 5
+|   |--- https >  0.15
+|   |   |--- min_packet_size <= -0.39
+|   |   |   |--- class: 6
+|   |   |--- min_packet_size >  -0.39
+|   |   |   |--- class: 0
+|--- packet_count >  -0.97
+|   |--- protocol_type <= 2.12
+|   |   |--- udp <= 1.44
+|   |   |   |--- class: 2
+|   |   |--- udp >  1.44
+|   |   |   |--- class: 4
+|   |--- protocol_type >  2.12
+|   |   |--- class: 4

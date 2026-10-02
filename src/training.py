@@ -9,7 +9,7 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support, f1_
 
 from src import config as cfg
 from src.utils import setup_logger, save_json
-from src.models import CNN1D, GRUBaseline, CNN_GRU
+from src.models import CNN1D, GRUBaseline, CNN_GRU, MLP
 import torch.nn.functional as F
 
 class FocalLoss(nn.Module):
@@ -67,6 +67,17 @@ def preprocessing_record(meta: dict) -> dict:
                                  "canonicalize_numeric_tokens", "split_seed", "n_features")}
 
 
+def choose_threshold(model, X_val_t, y_val_bin, batch_size):
+    """Decision threshold that maximises validation macro-F1 (binary models)."""
+    model.eval()
+    with torch.no_grad():
+        probs = torch.cat([torch.sigmoid(model(X_b)).squeeze(1)
+                           for X_b, _ in iterate_batches(X_val_t, X_val_t, batch_size)]).cpu().numpy()
+    grid = np.arange(0.05, 0.96, 0.01)
+    scores = [f1_score(y_val_bin, (probs > t).astype(int), average="macro", zero_division=0) for t in grid]
+    return float(grid[int(np.argmax(scores))])
+
+
 def iterate_batches(X, y, batch_size, shuffle=False):
     """Yield (X, y) mini-batches from tensors that already live on the target device."""
     n = X.shape[0]
@@ -86,9 +97,13 @@ def _write_progress(**kwargs):
         logger.warning(f"Could not write training_progress.json: {e}")
 
 
-def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="ce", epochs=None, seed=None):
+def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="ce", epochs=None, seed=None,
+                   tune_threshold=False, model_kwargs=None, learning_rate=None, batch_size=None,
+                   drop_features=None):
     epochs = epochs or cfg.EPOCHS
     seed = cfg.GLOBAL_SEED if seed is None else seed
+    batch_size = batch_size or cfg.BATCH_SIZE
+    learning_rate = learning_rate or cfg.LEARNING_RATE
     logger.info(f"Starting {experiment_id} using {model_name} on {target_col} ({epochs} epochs, loss={loss_type})")
     cfg.set_seeds(seed)
     _write_progress(experiment_id=experiment_id, model=model_name, phase="loading_data",
@@ -106,8 +121,19 @@ def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="
     X_train, y_train = data["X_train"], data["y_train"]
     X_val, y_val = data["X_val"], data["y_val"]
     X_test, y_test = data["X_test"], data["y_test"]
+    feature_names = list(meta["feature_names"])
+    if drop_features:
+        # Feature-removal experiments (e.g. SHAP fidelity): drop columns after loading.
+        keep = [i for i, f in enumerate(feature_names) if f not in set(drop_features)]
+        missing = set(drop_features) - set(feature_names)
+        if missing:
+            raise ValueError(f"drop_features not in data: {sorted(missing)}")
+        X_train, X_val, X_test = X_train[:, keep], X_val[:, keep], X_test[:, keep]
+        feature_names = [feature_names[i] for i in keep]
+        logger.info(f"Dropped {len(drop_features)} features; training on {len(feature_names)}")
     n_test = len(X_test)
-    normal_idx = next((int(k) for k, v in meta["label_mapping"].items() if v == "Normal"), 7)
+    # Benign class index ("Normal" in Edge-IIoTset, "Benign" in CICIoT2023)
+    normal_idx = next((int(k) for k, v in meta["label_mapping"].items() if v in ("Normal", "Benign")), 7)
 
     input_dim = X_train.shape[1]
 
@@ -123,6 +149,11 @@ def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="
             y_train_bin = (y_train != normal_idx).astype(np.float32)
             y_val_bin = (y_val != normal_idx).astype(np.float32)
             y_test_bin = (y_test != normal_idx).astype(np.float32)
+
+        if loss_type == "sqrt_weighted":
+            # Attacks are ~27% of rows; sqrt(neg/pos) up-weights them without over-correcting.
+            pos_weight = float(np.sqrt((y_train_bin == 0).sum() / max((y_train_bin == 1).sum(), 1)))
+            criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pos_weight], device=device))
 
         y_train_t = torch.tensor(y_train_bin).unsqueeze(1)
         y_val_t = torch.tensor(y_val_bin).unsqueeze(1)
@@ -156,20 +187,22 @@ def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="
     X_test_t = torch.from_numpy(X_test).to(device)
     y_train_t, y_val_t, y_test_t = y_train_t.to(device), y_val_t.to(device), y_test_t.to(device)
     del X_train, X_val, X_test, data
-    n_train_batches = -(-len(X_train_t) // cfg.BATCH_SIZE)
-    n_val_batches = -(-len(X_val_t) // cfg.BATCH_SIZE)
+    n_train_batches = -(-len(X_train_t) // batch_size)
+    n_val_batches = -(-len(X_val_t) // batch_size)
 
     # Initialize Model
     if model_name == "1D-CNN":
         model = CNN1D(input_dim, num_classes).to(device)
     elif model_name == "GRU":
         model = GRUBaseline(input_dim, num_classes).to(device)
+    elif model_name == "MLP":
+        model = MLP(input_dim, num_classes).to(device)
     elif model_name == "CNN-GRU":
-        model = CNN_GRU(input_dim, num_classes).to(device)
+        model = CNN_GRU(input_dim, num_classes, **(model_kwargs or {})).to(device)
     else:
         raise ValueError("Unknown model name")
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.LEARNING_RATE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     # Training Loop with Early Stopping
     logger.info("Training Model...")
@@ -185,7 +218,7 @@ def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="
     for epoch in range(epochs):
         model.train()
         train_loss = 0
-        for X_b, y_b in iterate_batches(X_train_t, y_train_t, cfg.BATCH_SIZE, shuffle=True):
+        for X_b, y_b in iterate_batches(X_train_t, y_train_t, batch_size, shuffle=True):
             optimizer.zero_grad()
             outputs = model(X_b)
             loss = criterion(outputs, y_b)
@@ -196,7 +229,7 @@ def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="
         model.eval()
         val_loss = 0
         with torch.no_grad():
-            for X_b, y_b in iterate_batches(X_val_t, y_val_t, cfg.BATCH_SIZE):
+            for X_b, y_b in iterate_batches(X_val_t, y_val_t, batch_size):
                 outputs = model(X_b)
                 loss = criterion(outputs, y_b)
                 val_loss += loss.item()
@@ -247,16 +280,27 @@ def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="
 
     all_preds = []
     with torch.no_grad():
-        for X_b, _ in iterate_batches(X_test_t, y_test_t, cfg.BATCH_SIZE):
+        for X_b, _ in iterate_batches(X_test_t, y_test_t, batch_size):
             outputs = model(X_b)
             if task_type == "binary":
-                preds = (torch.sigmoid(outputs) > 0.5).int().cpu().numpy()
+                preds = torch.sigmoid(outputs).squeeze(1).cpu().numpy()  # probabilities
             else:
                 preds = torch.argmax(outputs, dim=1).cpu().numpy()
-            all_preds.extend(preds)
+            all_preds.append(preds)
 
     inference_time = time.time() - t1
-    y_pred = np.array(all_preds).squeeze()
+    y_out = np.concatenate(all_preds)
+
+    threshold, macro_f1_at_half = 0.5, None
+    if task_type == "binary":
+        if tune_threshold:
+            # Chosen on the VALIDATION split only; the test split is never used for tuning.
+            threshold = choose_threshold(model, X_val_t, y_val_bin, batch_size)
+            macro_f1_at_half = f1_score(y_test_bin, (y_out > 0.5).astype(int), average="macro", zero_division=0)
+            logger.info(f"Validation-tuned threshold {threshold:.2f} (test macro-F1 at 0.5 would be {macro_f1_at_half:.4f})")
+        y_pred = (y_out > threshold).astype(int)
+    else:
+        y_pred = y_out
 
     if task_type == "binary":
         accuracy = accuracy_score(y_test_bin, y_pred)
@@ -303,7 +347,7 @@ def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="
     else:
         df = pd.DataFrame()
 
-    features_used = meta["feature_names"]
+    features_used = feature_names
 
     new_record = {
         "experiment_id": experiment_id,
@@ -327,22 +371,27 @@ def train_dl_model(experiment_id, model_name, target_col, task_type, loss_type="
         "model_size_mb": model_size_mb,
         "features_used": features_used,
         "loss_type": loss_type,
+        "threshold": threshold,
+        "macro_f1_at_0.5": macro_f1_at_half,
         "canonicalize_numeric_tokens": meta["canonicalize_numeric_tokens"],
         "epochs_run": epoch + 1,
         "device": str(device),
         "hyperparameters": {
-            "batch_size": cfg.BATCH_SIZE,
-            "learning_rate": cfg.LEARNING_RATE,
-            "epochs": epochs
+            "batch_size": batch_size,
+            "learning_rate": learning_rate,
+            "epochs": epochs,
+            **(model_kwargs or {}),
         },
         "preprocessing": preprocessing_record(meta),
+        "dropped_features": list(drop_features or []),
     }
 
     # Save the full config as JSON
     save_json(new_record, exp_dir / "experiment_record.json")
 
     # Save to CSV (excluding complex objects like features_used and hyperparameters)
-    csv_record = {k: v for k, v in new_record.items() if k not in ["features_used", "hyperparameters", "preprocessing"]}
+    csv_record = {k: v for k, v in new_record.items()
+                  if k not in ["features_used", "hyperparameters", "preprocessing", "macro_f1_at_0.5"]}
     df = pd.concat([df, pd.DataFrame([csv_record])], ignore_index=True)
     df.to_csv(registry_path, index=False)
 

@@ -126,7 +126,11 @@ def training_panel(status):
         Text.assemble(("Epoch ", "bold"), f"{epoch}/{total}  "),
         bar,
     ]
-    if "train_loss" in prog:
+    if "val_macro_f1" in prog:
+        lines.append(Text(f"train loss {prog['train_loss']:.4f}   val macro-F1 {prog['val_macro_f1']:.4f}   "
+                          f"best {prog['best_val_macro_f1']:.4f}   "
+                          f"no-improvement epochs {prog.get('patience_counter', 0)}/{prog.get('patience_limit', '?')}"))
+    elif "train_loss" in prog:
         lines.append(Text(f"train loss {prog['train_loss']:.4f}   val loss {prog['val_loss']:.4f}   "
                           f"best val {prog.get('best_val_loss', 0):.4f}   "
                           f"early-stop patience {prog.get('patience_counter', 0)}/{prog.get('patience_limit', '?')}"))

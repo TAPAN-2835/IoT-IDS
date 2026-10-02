@@ -1,0 +1,25 @@
+target=is_attack policy=ciciot_flow_strict canonicalize=False
+depth-3 tree balanced accuracy (val sample): 0.8516
+
+|--- https <= -0.29
+|   |--- time_to_live <= -0.16
+|   |   |--- inter_arrival_time <= -0.02
+|   |   |   |--- class: 1
+|   |   |--- inter_arrival_time >  -0.02
+|   |   |   |--- class: 1
+|   |--- time_to_live >  -0.16
+|   |   |--- packet_size_variance <= 1.14
+|   |   |   |--- class: 1
+|   |   |--- packet_size_variance >  1.14
+|   |   |   |--- class: 0
+|--- https >  -0.29
+|   |--- syn_flag_number <= -0.40
+|   |   |--- max_packet_size <= 0.90
+|   |   |   |--- class: 0
+|   |   |--- max_packet_size >  0.90
+|   |   |   |--- class: 0
+|   |--- syn_flag_number >  -0.40
+|   |   |--- syn_flag_number <= -0.05
+|   |   |   |--- class: 1
+|   |   |--- syn_flag_number >  -0.05
+|   |   |   |--- class: 1

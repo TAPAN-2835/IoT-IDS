@@ -76,6 +76,14 @@ PLANS = {
             ("S04_cnn_gru_mc_ce_strict", "CNN-GRU", "ce"),
         ]),
     },
+    # strict minus every mqtt.* field: every MQTT packet in Edge-IIoTset is Normal,
+    # so this measures how much of the strict binary score is "is it MQTT".
+    "strict_no_mqtt": {
+        "binary": ("Attack_label", "binary", [
+            ("N01_xgb_binary_strict_nomqtt", "xgb", None),
+            ("N02_cnn_gru_binary_strict_nomqtt", "CNN-GRU", "ce"),
+        ]),
+    },
 }
 
 # Fields that identify a packet or capture rather than describe behaviour.
@@ -98,13 +106,16 @@ def loss_study_plan(policy, seeds):
     return {"multiclass": ("Attack_type", "multiclass", runs)}
 
 
-def ensure_strict_policy():
-    """Write results/audit/strict_feature_policy.csv (operational minus STRICT_DROP)."""
-    path = cfg.AUDIT_DIR / "strict_feature_policy.csv"
+def ensure_strict_policy(no_mqtt=False):
+    """Write results/audit/strict[_no_mqtt]_feature_policy.csv (operational minus STRICT_DROP)."""
     base = pd.read_csv(cfg.AUDIT_DIR / "operational_feature_policy.csv")
     strict = base[~base["feature"].isin(STRICT_DROP)]
-    strict.to_csv(path, index=False)
-    logger.info(f"Strict policy: {len(strict)} features ({len(base) - len(strict)} identifier fields removed)")
+    name = "strict"
+    if no_mqtt:
+        strict = strict[~strict["feature"].str.startswith("mqtt.")]
+        name = "strict_no_mqtt"
+    strict.to_csv(cfg.AUDIT_DIR / f"{name}_feature_policy.csv", index=False)
+    logger.info(f"{name} policy: {len(strict)} features ({len(base) - len(strict)} removed from operational)")
 
 
 def keep_awake():
@@ -252,8 +263,8 @@ def main():
     be_nice()
     cfg.FEATURE_POLICY = args.policy
     cfg.CANONICALIZE_NUMERIC_TOKENS = True
-    if args.policy == "strict":
-        ensure_strict_policy()
+    if args.policy in ("strict", "strict_no_mqtt"):
+        ensure_strict_policy(no_mqtt=args.policy == "strict_no_mqtt")
 
     if args.study == "losses":
         plan = loss_study_plan(args.policy, args.seeds)

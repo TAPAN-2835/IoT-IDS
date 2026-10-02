@@ -1,6 +1,29 @@
 import torch
 import torch.nn as nn
 
+
+class MLP(nn.Module):
+    """
+    Plain feed-forward baseline (no convolution, no recurrence).
+    Used in the ablation to test whether the CNN and GRU parts of the hybrid add
+    anything over a simple network of similar size on tabular features.
+    Input -> Dense(64) -> ReLU -> Dropout -> Dense(32) -> ReLU -> Output
+    """
+    def __init__(self, input_dim, num_classes=1):
+        super(MLP, self).__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, 64),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, num_classes)
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
 class CNN1D(nn.Module):
     """
     1D CNN Baseline
@@ -76,26 +99,28 @@ class CNN_GRU(nn.Module):
     Proposed Hybrid CNN-GRU
     Input -> Conv1D -> BatchNorm -> ReLU -> MaxPooling -> Dropout -> GRU -> Dense -> Dropout -> Output
     """
-    def __init__(self, input_dim, num_classes=1):
+    def __init__(self, input_dim, num_classes=1, conv_filters=32, kernel_size=3,
+                 gru_units=64, dense_units=32, dropout=0.2):
         super(CNN_GRU, self).__init__()
+        # Defaults reproduce the original architecture, so earlier checkpoints still load.
         
         self.conv = nn.Sequential(
-            nn.Conv1d(in_channels=1, out_channels=32, kernel_size=3, padding=1),
-            nn.BatchNorm1d(32),
+            nn.Conv1d(in_channels=1, out_channels=conv_filters, kernel_size=kernel_size, padding=kernel_size // 2),
+            nn.BatchNorm1d(conv_filters),
             nn.ReLU(),
             nn.MaxPool1d(kernel_size=2),
-            nn.Dropout(0.2)
+            nn.Dropout(dropout)
         )
         
-        # Output of conv is (N, 32, input_dim // 2)
-        # We transpose this to (N, input_dim // 2, 32) so seq_len = input_dim // 2, input_size = 32
+        # Output of conv is (N, conv_filters, input_dim // 2)
+        # We transpose this to (N, input_dim // 2, conv_filters) so seq_len = input_dim // 2
         
-        self.gru = nn.GRU(input_size=32, hidden_size=64, batch_first=True)
+        self.gru = nn.GRU(input_size=conv_filters, hidden_size=gru_units, batch_first=True)
         self.dense = nn.Sequential(
-            nn.Linear(64, 32),
+            nn.Linear(gru_units, dense_units),
             nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(32, num_classes)
+            nn.Dropout(dropout),
+            nn.Linear(dense_units, num_classes)
         )
 
     def forward(self, x):

@@ -1,0 +1,19 @@
+target=is_attack policy=ciciot_flow canonicalize=False
+depth-3 tree balanced accuracy (val sample): 0.8848
+
+|--- https <= -0.29
+|   |--- packet_count <= -0.97
+|   |   |--- max_packet_size <= 1.32
+|   |   |   |--- class: 1
+|   |   |--- max_packet_size >  1.32
+|   |   |   |--- class: 0
+|   |--- packet_count >  -0.97
+|   |   |--- class: 1
+|--- https >  -0.29
+|   |--- packet_count <= -0.97
+|   |   |--- max_packet_size <= 0.90
+|   |   |   |--- class: 0
+|   |   |--- max_packet_size >  0.90
+|   |   |   |--- class: 0
+|   |--- packet_count >  -0.97
+|   |   |--- class: 1

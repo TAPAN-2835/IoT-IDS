@@ -1,0 +1,22 @@
+target=category policy=ciciot_flow_strict canonicalize=False
+depth-3 tree balanced accuracy (val sample): 0.3901
+
+|--- https <= -0.55
+|   |--- protocol_type <= 2.12
+|   |   |--- time_to_live <= -0.20
+|   |   |   |--- class: 2
+|   |   |--- time_to_live >  -0.20
+|   |   |   |--- class: 5
+|   |--- protocol_type >  2.12
+|   |   |--- class: 4
+|--- https >  -0.55
+|   |--- syn_count_frac <= -0.40
+|   |   |--- min_packet_size <= -0.39
+|   |   |   |--- class: 6
+|   |   |--- min_packet_size >  -0.39
+|   |   |   |--- class: 0
+|   |--- syn_count_frac >  -0.40
+|   |   |--- syn_count_frac <= -0.08
+|   |   |   |--- class: 2
+|   |   |--- syn_count_frac >  -0.08
+|   |   |   |--- class: 5

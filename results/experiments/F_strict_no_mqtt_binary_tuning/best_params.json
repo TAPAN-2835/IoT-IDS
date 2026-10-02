@@ -1,0 +1,21 @@
+{
+    "learning_rate": 0.003014123716627415,
+    "batch_size": 8192,
+    "conv_filters": 64,
+    "kernel_size": 5,
+    "gru_units": 128,
+    "dense_units": 32,
+    "dropout": 0.23878584532599914,
+    "loss": "ce",
+    "best_val_macro_f1": 0.8595948907930436,
+    "trial": 16,
+    "n_trials": 20,
+    "preprocessing": {
+        "fingerprint": "7552e1d5005b53a1",
+        "target_col": "Attack_label",
+        "feature_policy": "strict_no_mqtt",
+        "canonicalize_numeric_tokens": true,
+        "split_seed": 42,
+        "n_features": 51
+    }
+}
