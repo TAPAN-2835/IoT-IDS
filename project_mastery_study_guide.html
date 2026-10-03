@@ -421,19 +421,81 @@
 
     /* Print View */
     @media print {
-      body { background: #fff !important; color: #0f172a !important; }
+      @page {
+        margin: 20mm;
+      }
+      body {
+        background: #fff !important;
+        color: #000 !important;
+        font-size: 14pt !important;
+        line-height: 1.8 !important;
+      }
+      *, p, h1, h2, h3, h4, h5, h6, span, a, li, ul, ol, strong, em, i, td, th {
+        color: #000 !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+      }
+      h1 { font-size: 26pt !important; margin-bottom: 20px !important; border-bottom: 3px solid #000 !important; padding-bottom: 10px !important; }
+      h2 { font-size: 20pt !important; margin-top: 30px !important; margin-bottom: 15px !important; border-bottom: 1px solid #ddd !important; padding-bottom: 8px !important; }
+      h3 { font-size: 16pt !important; margin-top: 20px !important; margin-bottom: 10px !important; }
+      
       .sidebar { display: none !important; }
       .content-area { margin-left: 0 !important; padding: 0 !important; width: 100% !important; }
-      .study-section, .file-card, .qa-block, .table-box {
-        background: #fff !important;
-        border: 1px solid #cbd5e1 !important;
-        color: #0f172a !important;
+      
+      /* Make it less boring by using light grays */
+      .header-banner {
+        background: #f8f8f8 !important;
+        border: 2px solid #000 !important;
+        padding: 30px !important;
+        border-radius: 12px !important;
+        margin-bottom: 30px !important;
+      }
+      .study-section {
+        border: none !important;
+        padding: 0 !important;
+        margin-bottom: 40px !important;
+      }
+      .file-card, .qa-block {
+        background: #f4f4f4 !important;
+        border: 1px solid #ccc !important;
+        border-left: 5px solid #555 !important;
+        border-radius: 8px !important;
+        padding: 20px !important;
+        margin-bottom: 20px !important;
         page-break-inside: avoid;
       }
-      .speech-quote { background: #f8fafc !important; border: 1px solid #e2e8f0 !important; }
-      .speech-quote-text, td, .file-desc, .qa-ans { color: #1e293b !important; }
-      .main-title, .section-title, .qa-q { color: #0f172a !important; }
-      .copy-btn { display: none !important; }
+      .speech-quote {
+        background: #fafafa !important;
+        border: 1px dashed #aaa !important;
+        border-radius: 8px !important;
+        padding: 20px !important;
+        margin-bottom: 20px !important;
+        page-break-inside: avoid;
+        font-style: italic !important;
+      }
+      .callout {
+        background: #eeeeee !important;
+        border: 2px solid #888 !important;
+        padding: 20px !important;
+        border-radius: 8px !important;
+        margin-bottom: 25px !important;
+        page-break-inside: avoid;
+      }
+      .table-box {
+        border: 1px solid #999 !important;
+        margin-bottom: 25px !important;
+        page-break-inside: avoid;
+      }
+      th {
+        background: #e5e5e5 !important;
+        font-weight: bold !important;
+        border-bottom: 2px solid #555 !important;
+      }
+      td {
+        border-bottom: 1px solid #ccc !important;
+      }
+      .copy-btn, .badge-pill { display: none !important; }
+      i.fa-solid, i.fa-regular { color: #333 !important; } /* Keep icons visible */
     }
 
     @media (max-width: 900px) {
@@ -452,7 +514,7 @@
         <span>Study Guide</span>
       </div>
       <ul class="nav-menu">
-        <li class="nav-item"><a href="#summary"><i class="fa-solid fa-layer-group"></i> 1. Overview & Flow</a></li>
+        <li class="nav-item"><a href="#summary"><i class="fa-solid fa-layer-group"></i> 1. Overview & Story</a></li>
         <li class="nav-item"><a href="#code-walk"><i class="fa-solid fa-code"></i> 2. Code Walkthrough</a></li>
         <li class="nav-item"><a href="#best-model"><i class="fa-solid fa-microchip"></i> 3. best_model.pt Deep Dive</a></li>
         <li class="nav-item"><a href="#iot-deployment"><i class="fa-solid fa-network-wired"></i> 4. IoT Deployment</a></li>
@@ -469,249 +531,353 @@
 
   <!-- Main Content -->
   <main class="content-area">
-    
+
     <div class="header-banner">
       <span class="badge-pill"><i class="fa-solid fa-book-bookmark"></i> Revision & Defense Master Doc</span>
       <h1 class="main-title">Explainable Hybrid Deep Learning IDS for IoT Networks</h1>
-      <p class="main-desc">Complete conceptual guide covering architectural decisions, code locations, deployment mechanisms, parameter math, and faculty defense scripts.</p>
+      <p class="main-desc">Complete guide to the final, honest version of the project: what went wrong first, how we fixed it, the real results, where the code lives, and how to defend it. Every number here comes from <code>docs/FINAL_RESULTS.md</code> (the source of truth); if an older document disagrees, the older document is wrong.</p>
     </div>
 
     <!-- Section 1: Overview -->
     <section class="study-section" id="summary">
-      <h2 class="section-title"><i class="fa-solid fa-layer-group"></i> 1. Core Project Flow & The 3 Pillars</h2>
-      
+      <h2 class="section-title"><i class="fa-solid fa-layer-group"></i> 1. Core Story & The 4 Pillars</h2>
+
       <div class="callout">
-        <div class="callout-title"><i class="fa-solid fa-bullseye"></i> High-Level Pipeline Flow</div>
-        <p>Raw Edge-IIoTset Data (61 features, 15 attacks) ➔ <strong>Zero-Leakage Filter</strong> (Drop IP, MAC, Ports, Time) ➔ <strong>Benchmark Pipeline</strong> (RF, 1D-CNN, GRU, CNN-GRU) ➔ <strong>Flagship CNN-GRU</strong> (21K params, 86 KB) ➔ <strong>SHAP XAI Engine</strong> (Game-Theoretic MQTT Attribution) ➔ <strong>Real-Time Gateway Alert</strong>.</p>
+        <div class="callout-title"><i class="fa-solid fa-bullseye"></i> The project in one paragraph</div>
+        <p>Goal: an IDS for IoT that is <strong>accurate</strong> (catches attacks, few false alarms), <strong>explainable</strong> (shows why it alarmed) and <strong>lightweight</strong> (fits an IoT gateway). Proposed model: a hybrid <strong>CNN-GRU</strong> with <strong>SHAP</strong> explanations. Main dataset: <strong>Edge-IIoTset</strong> (2,219,201 packets, Normal + 14 attack types). Second dataset: <strong>CICIoT2023</strong> (flow-level, 33 attacks in 7 categories + Benign).</p>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title"><i class="fa-solid fa-triangle-exclamation"></i> What we first saw, and why it was fake</div>
+        <p>Every first model (Random Forest, CNN, GRU, CNN-GRU) scored <strong>100%</strong> on Normal vs Attack. We investigated instead of celebrating. Root cause: the dataset writes an <em>empty</em> protocol field as <code>"0"</code> in the Normal captures and as <code>"0.0"</code> in the attack captures. After one-hot encoding these become different columns, so one column alone gives away the label (empty <code>dns.qry.name.len</code>: <code>"0"</code> = 1,613,798 Normal rows and 0 attacks; <code>"0.0"</code> = 0 Normal rows and 603,331 attacks). The same happens in <code>mqtt.topic</code>, <code>mqtt.protoname</code>, <code>mqtt.conack.flags</code>. Our earlier "fix" of removing MQTT did not help, because the DNS column carries the same artifact, and our SHAP plots had hidden it by stripping the <code>_0</code> / <code>_0.0</code> suffix from feature names.</p>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title"><i class="fa-solid fa-route"></i> Honest pipeline flow (final)</div>
+        <p>Raw Edge-IIoTset ➔ <strong>Canonicalise</strong> (<code>"0"</code> = <code>"0.0"</code>) ➔ <strong>Strict feature policy</strong> (drop 7 per-packet identifiers + all <code>mqtt.*</code>; 51 encoded features) ➔ <strong>Shortcut scans</strong> (single-feature stumps, depth-3 tree) ➔ <strong>GPU training</strong>, 3 seeds, threshold chosen on validation only ➔ <strong>Tuned CNN-GRU</strong> (Macro-F1 0.858, 79,169 params) ➔ <strong>Detection ceiling audit</strong> ➔ <strong>SHAP + fidelity test</strong> ➔ <strong>Edge benchmark</strong> (FP16, 159 KB) ➔ <strong>Repeat on CICIoT2023</strong>.</p>
       </div>
 
       <div class="file-grid">
         <div class="file-card">
-          <div class="file-path"><i class="fa-solid fa-feather"></i> Pillar 1: Edge Feasibility</div>
-          <p class="file-desc">Downsized model footprint to <strong>86 KB</strong> (54% smaller than CNN alone, 140,000x smaller than Random Forest), allowing it to fit into IoT gateway cache.</p>
+          <div class="file-path"><i class="fa-solid fa-scale-balanced"></i> Pillar 1: Honest Accuracy</div>
+          <p class="file-desc">After removing the shortcut, the tuned CNN-GRU scores <strong>Macro-F1 0.858</strong> (90.0% accuracy, 0.7% false alarms, 65.3% of attacks detected). A measured ceiling shows even a perfect memoriser detects only <strong>67.5%</strong>, so the model is at the limit of what these packet features allow.</p>
         </div>
         <div class="file-card">
-          <div class="file-path"><i class="fa-solid fa-shield"></i> Pillar 2: Zero Leakage</div>
-          <p class="file-desc">Stripped all static identifiers (IPs, Ports, Timestamps) to guarantee the AI learns genuine protocol anomalies rather than memorizing IP addresses.</p>
+          <div class="file-path"><i class="fa-solid fa-brain"></i> Pillar 2: Proven Explainability</div>
+          <p class="file-desc">SHAP top features are real TCP behaviour (<code>tcp.flags</code>, <code>tcp.connection.rst</code>, <code>tcp.flags.ack</code>, <code>tcp.len</code>, <code>tcp.connection.fin</code>). Retraining without the top-5 SHAP features drops Macro-F1 <strong>0.858 → 0.605</strong>; without 5 random features it stays 0.858. SHAP is faithful.</p>
         </div>
         <div class="file-card">
-          <div class="file-path"><i class="fa-solid fa-brain"></i> Pillar 3: Explainability</div>
-          <p class="file-desc">Applied game-theoretic SHAP across all models, proving mathematically that <strong>MQTT protocol fields</strong> drive intrusion detection.</p>
+          <div class="file-path"><i class="fa-solid fa-feather"></i> Pillar 3: Edge Feasibility</div>
+          <p class="file-desc">Final CNN-GRU is <strong>315 KB</strong>; the FP16 version is <strong>159 KB</strong> with no loss (0.858). On 1 CPU thread: about 6.5 ms per packet. INT8 on the GRU shrinks it to 88 KB but costs 7.6 points.</p>
         </div>
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-database"></i> Pillar 4: Second Dataset</div>
+          <p class="file-desc">On <strong>CICIoT2023</strong> (flow-level, has rate and timing) we found and removed a <strong>second hidden shortcut</strong> (window size). Honest binary Macro-F1: CNN-GRU <strong>0.890</strong>, XGBoost <strong>0.917</strong>; 8 categories: 0.675 / 0.752.</p>
+        </div>
+      </div>
+
+      <div class="table-box">
+        <table>
+          <thead>
+            <tr><th>Figure (results/figures/)</th><th>What it shows</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><a href="results/figures/fig1_fake_vs_honest.png"><code>fig1_fake_vs_honest.png</code></a></td><td>Leaky 100% vs honest 0.858 / 0.868</td></tr>
+            <tr><td><a href="results/figures/fig2_shap_fidelity.png"><code>fig2_shap_fidelity.png</code></a></td><td>Removing top-5 SHAP vs 5 random features</td></tr>
+            <tr><td><a href="results/figures/fig3_model_comparison.png"><code>fig3_model_comparison.png</code></a></td><td>Ablation: MLP, 1D-CNN, GRU, CNN-GRU, XGBoost</td></tr>
+            <tr><td><a href="results/figures/fig4_datasets.png"><code>fig4_datasets.png</code></a></td><td>Edge-IIoTset vs CICIoT2023</td></tr>
+            <tr><td><a href="results/figures/fig5_detection_ceiling.png"><code>fig5_detection_ceiling.png</code></a></td><td>Detection ceiling (67.5%) vs our models</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
     <!-- Section 2: Code Walkthrough -->
     <section class="study-section" id="code-walk">
       <h2 class="section-title"><i class="fa-solid fa-code"></i> 2. Code Walkthrough: What to Open & Show</h2>
-      <p style="color: var(--text-muted); margin-bottom: 16px;">If your faculty asks to see the code, open these exact 4 files in <code>src/</code>:</p>
+      <p style="color: var(--text-muted); margin-bottom: 16px;">If faculty asks to see the code, follow the story: evidence of the shortcut ➔ the fix ➔ training ➔ explanations ➔ experiments ➔ results.</p>
 
       <div class="file-grid">
         <div class="file-card">
-          <div class="file-path"><i class="fa-solid fa-file-code"></i> src/models.py (Line 74)</div>
-          <p class="file-desc"><strong>Proposed CNN_GRU Architecture:</strong> 1D-CNN feature extraction + MaxPooling + GRU recurrent sequence processing.</p>
-          <div class="file-say">💬 <strong>Say:</strong> "Here is our hybrid model. The 1D-CNN compresses the 61 inputs so the GRU requires far fewer units, keeping params to 21,121."</div>
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> audit_shortcuts.py</div>
+          <p class="file-desc"><strong>Shortcut evidence:</strong> <code>--raw</code> streams the CSV and counts how each class writes empty fields (<code>results/audit/empty_token_audit.csv</code>). Also fits one-feature stumps and a depth-3 tree on processed data to catch any remaining giveaway.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "This is the proof that the 100% was fake: one column, written as "0" vs "0.0", separates Normal from Attack."</div>
         </div>
 
         <div class="file-card">
           <div class="file-path"><i class="fa-solid fa-file-code"></i> src/preprocessing.py</div>
-          <p class="file-desc"><strong>Data Cleaning & Scaler:</strong> Drops IP/MAC/Port leakage columns and normalizes features using MinMax scaling.</p>
-          <div class="file-say">💬 <strong>Say:</strong> "Here is our leakage drop list. We force the AI to learn structural protocol behavior rather than static IP addresses."</div>
+          <p class="file-desc"><strong>The fix:</strong> <code>canonicalize_column()</code> merges <code>"0"</code> and <code>"0.0"</code> before encoding; <code>feature_fingerprint()</code> writes a fingerprint of the processed data into <code>metadata.json</code>. Streaming, low-RAM (peak 6.1 → 3.4 GB).</p>
+          <div class="file-say">💬 <strong>Say:</strong> "We canonicalise numeric text, apply the strict feature policy, and stamp the data with a fingerprint so no model can be trained or explained on the wrong data."</div>
         </div>
 
         <div class="file-card">
           <div class="file-path"><i class="fa-solid fa-file-code"></i> src/training.py</div>
-          <p class="file-desc"><strong>Training Engine:</strong> PyTorch Adam optimization loop, early stopping on validation loss, and full metric tracking.</p>
-          <div class="file-say">💬 <strong>Say:</strong> "This manages batching, computes validation loss each epoch, and calculates Macro-F1 and inference latency."</div>
+          <p class="file-desc"><strong>Training engine:</strong> data held on the GPU (≈8 s/epoch vs ≈31 s), Adam, early stopping on validation loss, optional sqrt class weights, and <code>choose_threshold()</code> which picks the decision threshold on <em>validation</em> only.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "The test set is never used for any choice. The threshold comes from validation, and every comparison is run with 3 seeds."</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> src/models.py</div>
+          <p class="file-desc"><strong>Architectures:</strong> <code>MLP</code>, <code>CNN1D</code>, <code>GRUBaseline</code> and the proposed <code>CNN_GRU</code> (Conv1D ➔ BatchNorm ➔ ReLU ➔ MaxPool ➔ Dropout ➔ GRU ➔ Dense ➔ output).</p>
+          <div class="file-say">💬 <strong>Say:</strong> "The convolution learns local feature combinations, the GRU reads the resulting feature map step by step. The same file holds the simpler baselines we compared against."</div>
         </div>
 
         <div class="file-card">
           <div class="file-path"><i class="fa-solid fa-file-code"></i> src/explainability.py</div>
-          <p class="file-desc"><strong>SHAP Engine:</strong> Uses <code>shap.GradientExplainer</code> to compute exact feature attribution scores.</p>
-          <div class="file-say">💬 <strong>Say:</strong> "Here we compute Shapley values to identify exactly which packet attributes triggered the attack alert."</div>
+          <p class="file-desc"><strong>SHAP engine:</strong> <code>shap.GradientExplainer</code>. <code>_check_data_matches_experiment()</code> refuses to run if the data fingerprint differs from the one the model was trained on.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "An earlier SHAP plot explained a model with the wrong inputs. This guard makes that impossible now."</div>
         </div>
+
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> run_clean_baselines.py</div>
+          <p class="file-desc"><strong>Clean baselines:</strong> XGBoost (GPU) and CNN-GRU on the canonicalised data, per feature policy (e.g. <code>--policy strict_no_mqtt --stage binary</code>).</p>
+          <div class="file-say">💬 <strong>Say:</strong> "These are the honest numbers after the fix, for both a tree model and our network."</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> run_tune_cnn_gru.py</div>
+          <p class="file-desc"><strong>Tuning:</strong> Optuna, 20 trials, then retrains the best setting with 3 seeds (<code>F_strict_no_mqtt_binary_best_s42/s7/s2024</code>).</p>
+          <div class="file-say">💬 <strong>Say:</strong> "Best validation 0.8596, test 0.858, the same as untuned. Tuning cannot beat the ceiling."</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> run_final_studies.py</div>
+          <p class="file-desc"><strong>Final studies:</strong> ablation (MLP / 1D-CNN / GRU, 3 seeds), SHAP on the final model, SHAP fidelity (drop top-5 vs 5 random features), edge benchmark.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "This is where we test our own claims: is the hybrid needed, and is SHAP faithful?"</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> run_edge_benchmark.py</div>
+          <p class="file-desc"><strong>Edge test, CPU only:</strong> FP32, FP16, INT8 versions and XGBoost; Macro-F1, file size, single-packet latency on 1 thread, throughput ➔ <code>results/edge_benchmark.csv</code>.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "A gateway has no GPU, so we measured on one CPU thread."</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> audit_ceiling.py</div>
+          <p class="file-desc"><strong>Detection ceiling:</strong> groups identical feature vectors; if a pattern is mostly Normal, any classifier must call it Normal ➔ <code>results/audit/detection_ceiling.json</code>.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "Only 11,122 distinct patterns in 1.55 million training packets; even a perfect memoriser detects 67.5% of attacks."</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> run_ciciot.py + src/ciciot.py</div>
+          <p class="file-desc"><strong>Second dataset:</strong> same honest pipeline on CICIoT2023 (<code>--policy strict</code>): duplicates removed before splitting, <code>source_file</code>, <code>packet_count</code> and <code>total_sum</code> dropped, flag counts turned into fractions.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "We found a second shortcut here: the window size reveals the label. We removed it too."</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> watch_dashboard.py</div>
+          <p class="file-desc"><strong>Live terminal dashboard:</strong> reads the status/progress files and the registry while a run is going; can be opened or closed without affecting the run.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "Long runs are monitored live: epoch, loss, early-stopping counter, finished experiments."</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-file-code"></i> make_figures.py</div>
+          <p class="file-desc"><strong>Figures:</strong> builds <code>results/figures/fig1..fig5</code> from the committed result files.</p>
+          <div class="file-say">💬 <strong>Say:</strong> "Every chart is generated from result files, not drawn by hand."</div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title"><i class="fa-solid fa-folder-open"></i> Where the actual results live</div>
+        <p>
+          <strong>Master registry:</strong> <code>results/experiment_registry.csv</code> (every experiment, including the old leaky <code>E01</code>–<code>E08</code> ones; final Edge-IIoTset runs are <code>N01</code>/<code>N02</code>, <code>F_</code>, <code>A_</code>, <code>FID_</code>; final CICIoT2023 runs are <code>CS01</code>–<code>CS05</code>).<br>
+          <strong>Final model:</strong> <code>results/experiments/F_strict_no_mqtt_binary_best_s42/best_model.pt</code> (+ <code>experiment_record.json</code>, confusion matrix, SHAP plots).<br>
+          <strong>Audits:</strong> <code>results/audit/empty_token_audit.csv</code>, <code>results/audit/detection_ceiling.json</code>.<br>
+          <strong>Other results:</strong> <code>results/shap_fidelity.json</code>, <code>results/edge_benchmark.csv</code>, <code>results/operating_points.csv</code>.<br>
+          <strong>Charts:</strong> <code>results/figures/</code> (fig1 to fig5).
+        </p>
       </div>
     </section>
 
     <!-- Section 3: best_model.pt -->
     <section class="study-section" id="best-model">
       <h2 class="section-title"><i class="fa-solid fa-microchip"></i> 3. Deep Dive: What is `best_model.pt`?</h2>
-      
+
       <div class="callout">
         <div class="callout-title"><i class="fa-solid fa-circle-info"></i> What does it represent?</div>
-        <p><code>best_model.pt</code> is the serialized PyTorch binary file storing the <strong>21,121 optimized weights and biases</strong> of your trained neural network from the epoch with the lowest validation loss.</p>
+        <p><code>best_model.pt</code> is the PyTorch file holding the trained weights (the <code>state_dict</code>). The training loop saves it every time validation loss improves, so it is the best epoch on validation. The final one is <code>results/experiments/F_strict_no_mqtt_binary_best_s42/best_model.pt</code>: the tuned CNN-GRU with <strong>79,169 parameters</strong>, <strong>315 KB</strong> on disk (FP16 copy: <strong>159 KB</strong>). It is the file the SHAP script and the edge benchmark load.</p>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title"><i class="fa-solid fa-ban"></i> Do not show the old checkpoints as final</div>
+        <p>Older folders such as <code>E01</code>–<code>E08</code> were trained on the leaky data (before the <code>"0"</code>/<code>"0.0"</code> fix). Their "100%" results and their sizes belong to the "what we first saw" story only.</p>
       </div>
 
       <div class="table-box">
         <table>
           <thead>
             <tr>
-              <th>Experiment</th>
-              <th>Model</th>
-              <th>File Size on Disk</th>
-              <th>Why It Matters</th>
+              <th>Model (Edge-IIoTset, final setting)</th>
+              <th>Macro-F1</th>
+              <th>Parameters</th>
+              <th>File Size</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><code>E01</code></td>
-              <td>Random Forest Binary</td>
-              <td><strong>12.03 GB</strong></td>
-              <td>Crashes small IoT gateway RAM.</td>
-            </tr>
-            <tr>
-              <td><code>E03</code></td>
-              <td>1D-CNN Binary</td>
-              <td>0.18 MB</td>
-              <td>Baseline benchmark.</td>
-            </tr>
-            <tr>
-              <td><code>E04</code></td>
-              <td>GRU Binary</td>
-              <td>0.13 MB</td>
-              <td>Baseline benchmark.</td>
+            <tr><td>MLP</td><td>0.858</td><td>5,441</td><td>24 KB</td></tr>
+            <tr><td>1D-CNN</td><td>0.858</td><td>25,857</td><td>106 KB</td></tr>
+            <tr><td>GRU</td><td>0.858</td><td>24,577</td><td>99 KB</td></tr>
+            <tr style="background: rgba(99, 102, 241, 0.08);">
+              <td><strong>CNN-GRU (tuned, ours), FP32</strong></td>
+              <td><strong>0.858</strong></td>
+              <td><strong>79,169</strong></td>
+              <td><strong>315 KB</strong></td>
             </tr>
             <tr style="background: rgba(99, 102, 241, 0.08);">
-              <td><strong><code>E05</code></strong></td>
-              <td><strong>Proposed CNN-GRU</strong></td>
-              <td><strong style="color: var(--accent-emerald);">0.086 MB (86 KB)</strong></td>
-              <td><strong>★ 54% smaller than CNN alone; fits in CPU L2 cache!</strong></td>
+              <td><strong>CNN-GRU, FP16 weights</strong></td>
+              <td><strong>0.858</strong></td>
+              <td>79,169</td>
+              <td><strong style="color: var(--accent-emerald);">159 KB</strong></td>
             </tr>
+            <tr><td>CNN-GRU, INT8 (GRU + Linear)</td><td>0.782</td><td>79,169</td><td>88 KB</td></tr>
+            <tr><td>XGBoost (GPU-trained)</td><td>0.868</td><td>226 trees</td><td>492 KB</td></tr>
           </tbody>
         </table>
       </div>
+      <p style="color: var(--text-muted);">Honest reading: every network lands on the same 0.858, so on per-packet features the hybrid gives <strong>no accuracy gain</strong> over an MLP. All of them sit at the measured ceiling. See <code>results/figures/fig3_model_comparison.png</code>.</p>
     </section>
 
     <!-- Section 4: IoT Deployment -->
     <section class="study-section" id="iot-deployment">
       <h2 class="section-title"><i class="fa-solid fa-network-wired"></i> 4. IoT Real-World Deployment Architecture</h2>
-      
-      <p style="color: var(--text-muted); margin-bottom: 16px;">Individual sensors (smart meters, bulbs, temperature probes) do not run the AI. The model is saved on the <strong>IoT Edge Gateway / Local MQTT Broker</strong> (e.g., Raspberry Pi).</p>
+
+      <p style="color: var(--text-muted); margin-bottom: 16px;">Sensors (smart meters, bulbs, temperature probes) do not run the AI. The model is meant to run on the <strong>IoT edge gateway</strong> (e.g. a Raspberry-Pi-class device). We benchmarked on a laptop CPU with 1 thread; testing on a real Pi is a next step.</p>
 
       <div class="speech-quote">
         <div class="speech-quote-header">
-          <span class="speech-quote-tag"><i class="fa-solid fa-arrows-split-up-and-left"></i> The 5-Step Real-Time Execution Lifecycle</span>
+          <span class="speech-quote-tag"><i class="fa-solid fa-arrows-split-up-and-left"></i> The 5-Step Execution Lifecycle</span>
         </div>
         <p class="speech-quote-text">
-          <strong>1. Packet Ingestion:</strong> Sensor transmits an MQTT telemetry message.
+          <strong>1. Packet Ingestion:</strong> Device traffic passes through the gateway.
           <br>
-          <strong>2. Header Sniffing:</strong> Gateway intercepts packet headers via <code>libpcap/Scapy</code> and extracts 61 features (&lt; 0.5 ms).
+          <strong>2. Feature Extraction:</strong> Gateway extracts the same 51 encoded features used in training (same canonicalisation and feature policy).
           <br>
-          <strong>3. AI Inference:</strong> Gateway passes features to <code>best_model.pt</code> (&lt; 10 ms).
+          <strong>3. AI Inference:</strong> FP16 CNN-GRU (159 KB) scores the packet, about 6.5 ms per packet on 1 CPU thread.
           <br>
-          <strong>4. Inline Action:</strong> If Normal ➔ Forward packet. If Attack ➔ <strong>Drop packet immediately</strong> and isolate the compromised sensor.
+          <strong>4. Decision:</strong> Score above the validation-tuned threshold ➔ <strong>Attack alert</strong>; otherwise Normal. The threshold can be moved to trade detections against false alarms.
           <br>
-          <strong>5. Explainable Alert:</strong> Gateway logs the SHAP explanation (e.g., *"Abnormal MQTT Topic Length"*) to the admin dashboard.
+          <strong>5. Explainable Alert:</strong> SHAP shows which features pushed the score (e.g. unusual <code>tcp.flags</code> / <code>tcp.connection.rst</code>). A live demo through the dashboard predict API is a next step.
         </p>
       </div>
+
+      <div class="table-box">
+        <table>
+          <thead>
+            <tr><th>Version (1 CPU thread)</th><th>Macro-F1</th><th>Size</th><th>Latency / packet</th><th>Throughput</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>CNN-GRU FP32</td><td>0.858</td><td>315 KB</td><td>6.4 ms</td><td>1,500 rows/s</td></tr>
+            <tr style="background: rgba(99, 102, 241, 0.08);"><td><strong>CNN-GRU FP16 weights</strong></td><td><strong>0.858</strong></td><td><strong>159 KB</strong></td><td>6.5 ms</td><td>1,660 rows/s</td></tr>
+            <tr><td>CNN-GRU INT8 (Linear only)</td><td>0.858</td><td>304 KB</td><td>8.1 ms</td><td>1,620 rows/s</td></tr>
+            <tr><td>CNN-GRU INT8 (GRU + Linear)</td><td>0.782</td><td>88 KB</td><td>13.3 ms</td><td>2,050 rows/s</td></tr>
+            <tr><td>XGBoost</td><td>0.868</td><td>492 KB</td><td>0.8 ms</td><td>30,700 rows/s</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="color: var(--text-muted);">Honest reading: FP16 halves the size with no loss. XGBoost is faster on a CPU; the networks are smaller (MLP only 24 KB). With 65.3% of attacks detected on packet data, the system is an alerting tool, not an automatic packet-dropper.</p>
     </section>
 
     <!-- Section 5: Parameters -->
     <section class="study-section" id="parameters">
       <h2 class="section-title"><i class="fa-solid fa-sliders"></i> 5. Complete Parameter Guide</h2>
 
+      <h3 style="margin-bottom: 8px;">A. Training hyperparameters (final model, chosen by Optuna, 20 trials)</h3>
       <div class="table-box">
         <table>
           <thead>
             <tr>
-              <th>Parameter Category</th>
-              <th>Setting / Value</th>
+              <th>Parameter</th>
+              <th>Value</th>
               <th>Simple Explanation</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><strong>Batch Size</strong></td>
-              <td><code>256</code> / <code>512</code></td>
-              <td>Number of packet samples processed before updating neural weights.</td>
-            </tr>
-            <tr>
-              <td><strong>Learning Rate</strong></td>
-              <td><code>0.001</code></td>
-              <td>Step size taken by the Adam optimizer during weight adjustments.</td>
-            </tr>
-            <tr>
-              <td><strong>Dropout</strong></td>
-              <td><code>0.2</code> (20%)</td>
-              <td>Randomly disables 20% of neurons during training to prevent overfitting.</td>
-            </tr>
-            <tr>
-              <td><strong>CNN Layer</strong></td>
-              <td><code>Filters=32, Kernel=3</code></td>
-              <td>Scans 3 adjacent features at a time to discover 32 distinct spatial patterns.</td>
-            </tr>
-            <tr>
-              <td><strong>GRU Layer</strong></td>
-              <td><code>Hidden=64</code></td>
-              <td>64 recurrent memory units that track sequential correlations across features.</td>
-            </tr>
-            <tr>
-              <td><strong>Total Learnable Params</strong></td>
-              <td><strong>21,121</strong></td>
-              <td>Total numbers stored in <code>best_model.pt</code> (creating the tiny 86 KB footprint).</td>
-            </tr>
+            <tr><td><strong>Batch Size</strong></td><td><code>8192</code></td><td>Packets processed before each weight update (large, because the data sits on the GPU).</td></tr>
+            <tr><td><strong>Learning Rate</strong></td><td><code>0.0030</code></td><td>Step size of the Adam optimizer.</td></tr>
+            <tr><td><strong>Optimizer</strong></td><td><code>Adam</code></td><td>Adapts the step size per weight.</td></tr>
+            <tr><td><strong>Dropout</strong></td><td><code>0.239</code></td><td>Randomly switches off about 24% of neurons during training to prevent memorising.</td></tr>
+            <tr><td><strong>Loss</strong></td><td>Cross-entropy (binary)</td><td>Penalises confident wrong answers. Plain cross-entropy for the binary model; the loss study (sqrt weights vs focal vs cross-entropy) was run on the multiclass task.</td></tr>
+            <tr><td><strong>Epochs</strong></td><td><code>15</code></td><td>Passes over the training data, with early stopping on validation loss; <code>best_model.pt</code> keeps the best epoch.</td></tr>
+            <tr><td><strong>Decision Threshold</strong></td><td>Tuned on validation</td><td>The score cut-off for "Attack"; chosen on validation data only, never on test.</td></tr>
+            <tr><td><strong>Seeds</strong></td><td>3 (42, 7, 2024)</td><td>Same run repeated with different randomness: 0.8584 / 0.8583 / 0.8582.</td></tr>
           </tbody>
         </table>
       </div>
+
+      <h3 style="margin-bottom: 8px;">B. Architecture (neural anatomy)</h3>
+      <div class="table-box">
+        <table>
+          <thead>
+            <tr><th>Layer</th><th>Setting</th><th>Simple Explanation</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Conv1D</strong></td><td><code>64 filters, kernel 5</code></td><td>64 small detectors, each looking at 5 neighbouring features at a time.</td></tr>
+            <tr><td><strong>BatchNorm + ReLU + MaxPool(2)</strong></td><td>-</td><td>Stabilises training, keeps positive signals, halves the length of the feature map.</td></tr>
+            <tr><td><strong>GRU</strong></td><td><code>hidden 128</code></td><td>Reads the pooled feature map step by step and keeps a 128-number memory.</td></tr>
+            <tr><td><strong>Dense</strong></td><td><code>32 units</code> ➔ 1 output</td><td>Combines the GRU summary into one attack score.</td></tr>
+            <tr><td><strong>Total Learnable Params</strong></td><td><strong>79,169</strong></td><td>All numbers stored in <code>best_model.pt</code> (315 KB FP32, 159 KB FP16).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-bottom: 8px;">C. Input features (Edge-IIoTset final setting: <code>strict_no_mqtt</code>, 51 encoded features)</h3>
+      <div class="file-grid">
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-check"></i> Kept</div>
+          <p class="file-desc"><strong>TCP:</strong> <code>tcp.flags</code>, <code>tcp.flags.ack</code>, <code>tcp.len</code>, <code>tcp.connection.syn/synack/fin/rst</code>. <strong>HTTP:</strong> method, version, referer, content length, response. <strong>DNS:</strong> query name/length/type, retransmissions. Plus ARP, ICMP and Modbus length fields.</p>
+        </div>
+        <div class="file-card">
+          <div class="file-path"><i class="fa-solid fa-xmark"></i> Removed</div>
+          <p class="file-desc">Starting from the operational policy (already no IPs, ports or timestamps): minus 7 per-packet identifiers (<code>tcp.seq</code>, <code>tcp.ack</code>, <code>tcp.ack_raw</code>, <code>tcp.checksum</code>, <code>icmp.checksum</code>, <code>icmp.seq_le</code>, <code>udp.stream</code>) and minus every <code>mqtt.*</code> field (every MQTT packet in the dataset is Normal).</p>
+        </div>
+      </div>
+      <p style="color: var(--text-muted);"><strong>CICIoT2023</strong> uses flow-level features (e.g. <code>header_length</code>, <code>rate</code>, flag fractions, protocol indicators) with <code>source_file</code>, <code>packet_count</code> and <code>total_sum</code> removed.</p>
     </section>
 
     <!-- Section 6: Metrics -->
     <section class="study-section" id="metrics">
-      <h2 class="section-title"><i class="fa-solid fa-chart-pie"></i> 6. Results & Evaluation Metrics</h2>
+      <h2 class="section-title"><i class="fa-solid fa-chart-pie"></i> 6. Results & Metric Cheat-Sheet</h2>
 
       <div class="table-box">
         <table>
           <thead>
             <tr>
               <th>Metric</th>
-              <th>Our Score</th>
+              <th>Our Score (Edge-IIoTset, binary, tuned CNN-GRU)</th>
               <th>Plain Language Meaning</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><strong>Accuracy</strong></td>
-              <td><code>100.0%</code> (Binary) <br> <code>94.74%</code> (Multiclass)</td>
-              <td>Overall percentage of correct predictions.</td>
-            </tr>
-            <tr>
-              <td><strong>Precision</strong></td>
-              <td><code>1.0000</code></td>
-              <td>When the alarm goes off, how often is it a real attack? (Zero false alarms).</td>
-            </tr>
-            <tr>
-              <td><strong>Recall</strong></td>
-              <td><code>1.0000</code></td>
-              <td>Out of all real attacks, how many did we catch? (Zero missed attacks).</td>
-            </tr>
-            <tr>
-              <td><strong>F1-Score</strong></td>
-              <td><code>1.0000</code></td>
-              <td>Balanced harmonic mean of Precision and Recall.</td>
-            </tr>
-            <tr>
-              <td><strong>Weighted-F1</strong></td>
-              <td><code>0.9397</code> (94%)</td>
-              <td>F1 weighted by class frequency (reflects majority stream accuracy).</td>
-            </tr>
-            <tr>
-              <td><strong>Macro-F1</strong></td>
-              <td><code>0.6445</code> (64%)</td>
-              <td>Unweighted average F1 across all 15 classes (highlights rare-class imbalance).</td>
-            </tr>
-            <tr>
-              <td><strong>Latency</strong></td>
-              <td><code>0.0105s (~10ms)</code></td>
-              <td>Time taken to inspect 1 packet header on edge hardware.</td>
-            </tr>
-            <tr>
-              <td><strong>SHAP Value</strong></td>
-              <td><code>mqtt.topic</code> Rank #1</td>
-              <td>Feature contribution score proving AI decisions rely on IoT protocol tampering.</td>
-            </tr>
+            <tr><td><strong>Accuracy</strong></td><td><code>90.0%</code></td><td>Share of all packets classified correctly. Misleading on imbalanced data (most packets are Normal), so we lead with Macro-F1.</td></tr>
+            <tr><td><strong>Macro-F1</strong></td><td><code>0.858</code> (XGBoost 0.868)</td><td>F1 of each class averaged equally, so the smaller Attack class counts as much as Normal. Our headline number.</td></tr>
+            <tr><td><strong>Detection Rate (Recall)</strong></td><td><code>65.3%</code></td><td>Of all real attacks, how many we caught.</td></tr>
+            <tr><td><strong>False-Alarm Rate (FPR)</strong></td><td><code>0.7%</code></td><td>Of all normal packets, how many we wrongly flagged.</td></tr>
+            <tr><td><strong>Precision</strong></td><td>High (few false alarms)</td><td>When the alarm goes off, how often it is a real attack.</td></tr>
+            <tr><td><strong>ROC-AUC</strong></td><td><code>0.904</code> (XGBoost 0.917)</td><td>How well scores rank attacks above normal packets across all thresholds; 1.0 = perfect, 0.5 = guessing.</td></tr>
+            <tr><td><strong>Detection Ceiling</strong></td><td><code>67.5%</code> at 0.5% false alarms</td><td>Best any model can do on these features: 31.9% of attack packets look exactly like mostly-Normal patterns. We reach 65.3% (XGBoost 67.3%).</td></tr>
+            <tr><td><strong>Operating Point</strong></td><td><code>73.3%</code> detection at <code>6.6%</code> false alarms</td><td>Lowering the threshold catches more attacks but raises false alarms.</td></tr>
+            <tr><td><strong>SHAP Fidelity</strong></td><td>Top-5 removed: <code>0.858 ➔ 0.605</code>; 5 random: <code>0.858 ➔ 0.858</code></td><td>Proof that the features SHAP ranks highest are the ones the model really depends on.</td></tr>
+            <tr><td><strong>Latency / Size</strong></td><td><code>6.5 ms</code>, <code>159 KB</code> (FP16)</td><td>Time per packet on 1 CPU thread; size on disk.</td></tr>
+            <tr><td><strong>Multiclass Macro-F1</strong></td><td><code>0.337 ± 0.033</code> (XGBoost 0.429)</td><td>Attack <em>type</em> (14 + Normal) is weak on single packets: floods and scans need packet rate, which one packet cannot show.</td></tr>
           </tbody>
         </table>
       </div>
+
+      <div class="table-box">
+        <table>
+          <thead>
+            <tr><th>CICIoT2023 (flow-level)</th><th>XGBoost</th><th>CNN-GRU</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Benign vs Attack, Macro-F1</strong></td><td>0.917</td><td>0.890</td></tr>
+            <tr><td><strong>Detection / False alarms</strong></td><td>93.4% / 8.4%</td><td>90.4% / 9.6%</td></tr>
+            <tr><td><strong>ROC-AUC</strong></td><td>0.979</td><td>0.966</td></tr>
+            <tr><td><strong>Detection at ≤ 1% false alarms</strong></td><td>86.6%</td><td>82.3%</td></tr>
+            <tr><td><strong>8 categories, Macro-F1</strong></td><td>0.752</td><td>0.675 (sqrt weights; cross-entropy 0.620)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="color: var(--text-muted);">Edge-IIoTset ➔ CICIoT2023 (CNN-GRU): binary 0.86 ➔ 0.89, categories 0.34 ➔ 0.68, because flow data carries rate and timing. On CICIoT2023 SHAP ranks <code>header_length</code>, <code>ack_count_frac</code>, <code>rate</code>, <code>https</code>, <code>arp</code> highest. Figures: <code>fig1_fake_vs_honest.png</code>, <code>fig4_datasets.png</code>, <code>fig5_detection_ceiling.png</code>.</p>
     </section>
 
     <!-- Section 7: Script -->
@@ -720,41 +886,61 @@
 
       <div class="speech-quote">
         <div class="speech-quote-header">
-          <span class="speech-quote-tag">Stage 1: Problem Statement (45 sec)</span>
+          <span class="speech-quote-tag">Stage 1: Problem Statement (40 sec)</span>
           <button class="copy-btn" onclick="copyQuote(this)"><i class="fa-regular fa-copy"></i> Copy</button>
         </div>
         <p class="speech-quote-text">
-          "Good morning sir/ma'am. Our project is <strong>Explainable Hybrid Deep Learning-Based Intrusion Detection for IoT Networks</strong>. Traditional intrusion detection systems require heavy enterprise servers, while IoT devices have strict CPU and memory constraints. Our goal is to build an <strong>ultra-lightweight hybrid model under 100 KB</strong> that runs on IoT edge gateways and incorporates <strong>SHAP explainability</strong> to provide transparent reasoning for every alert."
+          "Good morning sir/ma'am. Our project is <strong>Explainable Hybrid Deep Learning-Based Intrusion Detection for IoT Networks</strong>. IoT devices are easy to attack and too weak to run heavy security software. We want an IDS that is <strong>accurate</strong>, <strong>explainable</strong>, and <strong>light enough for an IoT gateway</strong>. Our model is a hybrid <strong>CNN-GRU</strong> with <strong>SHAP</strong> explanations, tested on <strong>Edge-IIoTset</strong> and <strong>CICIoT2023</strong>."
         </p>
       </div>
 
       <div class="speech-quote">
         <div class="speech-quote-header">
-          <span class="speech-quote-tag">Stage 2: Dataset & Zero Leakage (45 sec)</span>
+          <span class="speech-quote-tag">Stage 2: The 100% Was Fake (60 sec)</span>
           <button class="copy-btn" onclick="copyQuote(this)"><i class="fa-regular fa-copy"></i> Copy</button>
         </div>
         <p class="speech-quote-text">
-          "We used the <strong>Edge-IIoTset dataset</strong> with 15 attack types. To guarantee scientific validity, we enforced a <strong>strict data leakage prevention policy</strong>: we stripped all IP addresses, MAC addresses, port numbers, and timestamps. This prevents the model from memorizing fixed IP addresses, forcing it to learn genuine protocol header anomalies."
+          "Our first models all scored <strong>100%</strong>. Instead of celebrating, we investigated. The dataset writes an empty field as <strong>"0" in normal traffic and "0.0" in attack traffic</strong>, so after encoding a single column gives away the label. We fixed it by treating "0" and "0.0" as the same value, removed 7 per-packet identifiers and all MQTT fields, and added automatic shortcut scans and data-fingerprint guards. Figure 1 shows the fake 100% next to the honest result."
         </p>
       </div>
 
       <div class="speech-quote">
         <div class="speech-quote-header">
-          <span class="speech-quote-tag">Stage 3: Proposed CNN-GRU Architecture (60 sec)</span>
+          <span class="speech-quote-tag">Stage 3: Honest Results & the Ceiling (70 sec)</span>
           <button class="copy-btn" onclick="copyQuote(this)"><i class="fa-regular fa-copy"></i> Copy</button>
         </div>
         <p class="speech-quote-text">
-          "Random Forest gave 100% accuracy, but required a <strong>12 GB file size</strong>—unusable on edge devices. Our proposed <strong>CNN-GRU Hybrid</strong> uses 1D-CNN to compress packet features and GRU to capture sequence patterns. This reduces parameters to just <strong>21,121</strong> and file size to <strong>86 KB</strong>—a 54% reduction compared to CNN alone with zero loss in detection accuracy."
+          "On the clean data, our tuned CNN-GRU reaches <strong>Macro-F1 0.858</strong>: 90% accuracy, <strong>0.7% false alarms</strong>, and it detects <strong>65.3% of attacks</strong>. It is stable across 3 seeds, and tuning with 20 Optuna trials does not raise it. We measured why: the 1.55 million training packets have only 11,122 distinct feature patterns, and a third of attack packets look exactly like normal ones. Even a perfect memoriser detects only <strong>67.5%</strong>, so our model is <strong>at the ceiling</strong> of what single packets allow."
         </p>
       </div>
 
       <div class="speech-quote">
         <div class="speech-quote-header">
-          <span class="speech-quote-tag">Stage 4: Results & SHAP Findings (60 sec)</span>
+          <span class="speech-quote-tag">Stage 4: Explainability That Is Proven (50 sec)</span>
           <button class="copy-btn" onclick="copyQuote(this)"><i class="fa-regular fa-copy"></i> Copy</button>
         </div>
         <p class="speech-quote-text">
-          "Our CNN-GRU achieved <strong>100% binary detection</strong> and <strong>94.74% multiclass accuracy</strong>. Using game-theoretic SHAP, all deep learning models independently converged on <strong>MQTT protocol fields (<code>mqtt.topic</code>, <code>mqtt.protoname</code>)</strong> as the primary attack indicator, proving our AI detects genuine protocol manipulation."
+          "SHAP says the model relies on real TCP behaviour: <strong>tcp.flags, connection resets, ACK flags, packet length</strong>. We did not just trust the plot. We retrained without SHAP's top-5 features and Macro-F1 fell from <strong>0.858 to 0.605</strong>; removing 5 random features changed nothing. So the explanation is faithful."
+        </p>
+      </div>
+
+      <div class="speech-quote">
+        <div class="speech-quote-header">
+          <span class="speech-quote-tag">Stage 5: Edge & Second Dataset (50 sec)</span>
+          <button class="copy-btn" onclick="copyQuote(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+        </div>
+        <p class="speech-quote-text">
+          "The final model has 79,169 parameters; in FP16 it is <strong>159 KB</strong> with no loss, at about 6.5 ms per packet on one CPU thread. On <strong>CICIoT2023</strong>, which has flow-level rate and timing, we found and removed a second hidden shortcut, and the CNN-GRU reaches <strong>0.890</strong> binary and <strong>0.675</strong> on 8 attack categories, up from 0.34 on packet data."
+        </p>
+      </div>
+
+      <div class="speech-quote">
+        <div class="speech-quote-header">
+          <span class="speech-quote-tag">Stage 6: Honest Limits & Next Steps (40 sec)</span>
+          <button class="copy-btn" onclick="copyQuote(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+        </div>
+        <p class="speech-quote-text">
+          "To be transparent: on per-packet features the CNN-GRU is <strong>not better than an MLP or XGBoost</strong>, because the GRU sees no real time dimension. Next we will give the GRU <strong>real sequences of flow windows</strong>, run a cross-dataset test, and deploy the FP16 model on a Raspberry-Pi-class device. Our contribution: two hidden dataset shortcuts found and removed, a measured ceiling, proven SHAP fidelity, and a fully reproducible evaluation. Thank you."
         </p>
       </div>
     </section>
@@ -764,23 +950,79 @@
       <h2 class="section-title"><i class="fa-solid fa-shield-halved"></i> 8. Tough Faculty Defense Q&A</h2>
 
       <div class="qa-block">
-        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-primary);"></i> Q1: Why not just use Random Forest if it got 100%?</div>
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-primary);"></i> Q1: Your first models got 100%. Why is the final result lower?</div>
         <div class="qa-ans">
-          "Random Forest required <strong>12.0 GB of storage</strong>, causing instant out-of-memory crashes on IoT gateways. Our CNN-GRU model achieves the same 100% accuracy in <strong>86 KB</strong> (140,000x smaller), enabling real-time on-device execution."
+          "The 100% was fake. Empty fields were written as "0" in normal captures and "0.0" in attack captures, so one column revealed the label. Every model, including Random Forest, exploited it. After the fix the honest result is <strong>0.858 Macro-F1</strong>. A lower honest number is worth more than a perfect fake one."
         </div>
       </div>
 
       <div class="qa-block">
-        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-amber);"></i> Q2: Why is Macro-F1 0.64 in multiclass when accuracy is 94.7%?</div>
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-amber);"></i> Q2: Isn't 65% detection too low for an IDS?</div>
         <div class="qa-ans">
-          "Edge-IIoTset is heavily imbalanced. Rare attacks like XSS have few samples. Macro-F1 treats all 15 classes equally, honestly showing rare-class difficulty. We are implementing Focal Loss in Phase 5 to resolve this."
+          "It is low, and we measured why: <strong>31.9% of attack packets</strong> have exactly the same features as mostly-normal patterns, so no packet-level model can catch them. The ceiling is <strong>67.5%</strong>; we reach 65.3% (XGBoost 67.3%). The threshold can be lowered to reach 73.3% at 6.6% false alarms. With flow-level data (CICIoT2023) detection rises to 90.4%."
         </div>
       </div>
 
       <div class="qa-block">
-        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-cyan);"></i> Q3: Where does this model sit in an IoT network?</div>
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-cyan);"></i> Q3: If an MLP gets the same 0.858, why the hybrid CNN-GRU?</div>
         <div class="qa-ans">
-          "On the <strong>IoT Edge Gateway or Local MQTT Broker</strong> (like a Raspberry Pi). It inspects packet headers inline in under 10 ms and drops malicious packets locally without needing cloud round-trips."
+          "Honest answer: on per-packet features the hybrid gives <strong>no accuracy gain</strong>; MLP, 1D-CNN, GRU and CNN-GRU all score 0.858 because they all hit the ceiling. The GRU needs a real time dimension to help. Our next step is to feed it consecutive flow windows per device or connection, which is where a recurrent model should pay off."
+        </div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-emerald);"></i> Q4: XGBoost is slightly better and much faster. Why not just use it?</div>
+        <div class="qa-ans">
+          "XGBoost is a strong baseline and we report it openly: 0.868 vs 0.858, 0.8 ms vs 6.5 ms per packet. The networks are smaller (FP16 CNN-GRU 159 KB, MLP 24 KB, XGBoost 492 KB). If CPU speed on per-packet data were the only goal, XGBoost would be a fair choice; the CNN-GRU is kept because the next step feeds it real sequences of flow windows, where a recurrent model can use time and a tree model cannot."
+        </div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-purple);"></i> Q5: How do you know SHAP is telling the truth?</div>
+        <div class="qa-ans">
+          "We tested it. Retraining without SHAP's <strong>top-5 features</strong> drops Macro-F1 from 0.858 to <strong>0.605</strong>; retraining without <strong>5 random features</strong> changes it by only 0.0001. We also added a guard so SHAP refuses to run on data the model was not trained on, because an earlier plot had explained a model with the wrong inputs."
+        </div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-rose);"></i> Q6: Earlier you said MQTT fields drive detection. What changed?</div>
+        <div class="qa-ans">
+          "That came from the leaky data: the MQTT fields carried the same "0"/"0.0" artifact, and every MQTT packet in the dataset is Normal. We now remove all MQTT fields; with vs without MQTT gives 0.8579 vs 0.8575, so the model does not use them. The real top features are TCP flags, resets, ACKs and packet length."
+        </div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-amber);"></i> Q7: Why is attack-type (multiclass) detection so weak?</div>
+        <div class="qa-ans">
+          "On Edge-IIoTset strict features, Macro-F1 is 0.337 for CNN-GRU and 0.429 for XGBoost. Floods and scans are defined by packet <em>rate</em>, which a single packet cannot show, and the dataset has no timing for attack packets (<code>udp.time_delta</code> is 0 for every attack row). On CICIoT2023, which has rate, it rises to 0.675 (CNN-GRU) and 0.752 (XGBoost)."
+        </div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-cyan);"></i> Q8: Did you try focal loss or class weights for imbalance?</div>
+        <div class="qa-ans">
+          "Yes, over 3 seeds on multiclass: sqrt class weights <strong>0.337</strong> beat focal loss 0.254 and cross-entropy 0.238. Sqrt weights also help on CICIoT2023 categories (0.675 vs 0.620). For the binary model, plain cross-entropy was kept."
+        </div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-primary);"></i> Q9: How can we trust there is no other leakage?</div>
+        <div class="qa-ans">
+          "Automatic shortcut scans fit a one-feature stump per column and a depth-3 tree; a giveaway shows up as near-100%. On CICIoT2023 the best single feature reaches only 0.85 after the fix. Thresholds are chosen on validation only, every comparison uses 3 seeds, and a data fingerprint stops training or SHAP on mismatched data. Limitation: one random stratified split per dataset and no cross-dataset test yet."
+        </div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-emerald);"></i> Q10: Where does this model sit in an IoT network, and is it fast enough?</div>
+        <div class="qa-ans">
+          "On the <strong>IoT edge gateway</strong>, not on sensors. On one CPU thread the FP16 model is 159 KB and takes about 6.5 ms per packet (around 1,660 packets/s). It raises explainable alerts; we have not yet tested it on a real Raspberry Pi, which is a next step."
+        </div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q"><i class="fa-solid fa-circle-question" style="color: var(--accent-purple);"></i> Q11: How does SHAP work in simple terms?</div>
+        <div class="qa-ans">
+          "SHAP comes from Shapley values in game theory. Each input feature is a 'player', and SHAP measures how much each one pushed this packet's score toward Attack or Normal, compared with an average background. We use the gradient-based version for neural networks."
         </div>
       </div>
     </section>

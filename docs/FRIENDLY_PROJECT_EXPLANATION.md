@@ -1,78 +1,169 @@
-> **Correction (2026-10-02):** Removing MQTT did not stop the shortcut (E05 stayed at 100%), and the focal-loss comparison used undertrained models. See [LEAKAGE_FIX_AND_CLEAN_BASELINES.md](LEAKAGE_FIX_AND_CLEAN_BASELINES.md).
-
 # The Complete Guide to Our IoT-IDS Research Project
-*A clear, deep-dive explanation of what we built, what we discovered, and what to do next.*
+*A plain-language explanation of what we built, what we discovered, and what comes next.
+All numbers come from [FINAL_RESULTS.md](FINAL_RESULTS.md).*
 
 ---
 
 ## 1. The Big Picture: What Are We Building?
-We are building an **Explainable Hybrid Deep Learning-Based Intrusion Detection System (IDS)** specifically designed for **IoT Networks**. 
-IoT devices (like smart sensors) don't have much computational power, so they are vulnerable to cyberattacks (like DDoS, MITM, and malware). We are using a massive dataset called **Edge-IIoTset** to train a deep learning model to detect these attacks by analyzing network traffic packets.
 
-Our core model is a **CNN-GRU**:
-- **CNN (Convolutional Neural Network):** Extracts spatial features (patterns within a single packet).
-- **GRU (Gated Recurrent Unit):** Designed to capture temporal features (patterns over time). 
+IoT devices (smart sensors, cameras, industrial controllers) are easy to attack and too weak to run
+heavy security software. We are building an **Intrusion Detection System (IDS)**: a program that
+watches network traffic and raises an alarm when it sees an attack. We want it to be:
 
----
+1. **Accurate**: catch attacks without crying wolf.
+2. **Explainable**: say *why* it raised the alarm.
+3. **Lightweight**: small and fast enough to run on an IoT gateway.
 
-## 2. The Plot Twist: The 100% Accuracy Illusion
-In the early stages of our research (Phase 1), our models were achieving **100% accuracy** on binary classification (Normal vs. Attack). 
+Our model is a **CNN-GRU**:
+- **CNN (Convolutional Neural Network):** finds patterns among the features of a record.
+- **GRU (Gated Recurrent Unit):** a lightweight network designed for sequences.
 
-In machine learning, 100% accuracy is almost always a red flag. It means the model isn't learning what an attack looks like; it has found a shortcut to "cheat" the test. This is called **Data Leakage**.
+To explain decisions we use **SHAP**, a tool that tells us how much each feature pushed the model
+towards "attack" or "normal".
 
-### How did we catch the model cheating?
-We used **SHAP (SHapley Additive exPlanations)**, an advanced explainable AI tool, to look inside the model's "brain." 
-SHAP revealed that the model was heavily relying on specific IoT protocols—most notably, `mqtt.topic` and `dns.qry.name.len`. 
-
-Because of the way the Edge-IIoTset dataset was constructed (stitching different network captures together), **100% of the MQTT traffic in our sample was labeled as "Normal," and specific HTTP traffic was labeled as "Attack."** The model didn't learn intrusion detection; it just learned that "MQTT = Good" and "HTTP = Bad".
-
-### The Fix (Feature Ablation)
-To force the model to actually learn network security, we ran an ablation study (E05) where we stripped away these "cheating" MQTT features (`no_mqtt` feature policy). The model is now forced to generalize based on deeper packet inspection rather than simple protocol signatures.
+We use two public datasets: **Edge-IIoTset** (2.2 million network packets, normal traffic plus 14
+attack types) and **CICIoT2023** (flow-level summaries of traffic, 33 attacks grouped into 7
+categories plus benign traffic).
 
 ---
 
-## 3. The Multiclass Problem: Solving Extreme Class Imbalance
-Detecting "Attack vs. Normal" is easy, but identifying the *specific* type of attack out of 15 different classes is very hard, especially because some attacks happen rarely (extreme class imbalance).
+## 2. The Plot Twist: The 100% Accuracy Was Fake
 
-When we trained our CNN-GRU on all 15 classes using standard loss functions (Cross-Entropy), we got an overall accuracy of **88.0%**. Sounds good, right? 
-**Wrong.** We looked at a metric called **Macro-F1**, which treats all classes equally regardless of their size. Our Macro-F1 was a terrible **0.263**. The model was just ignoring the rare attacks completely to boost its overall score on the common attacks.
+Our first models (Random Forest, CNN, GRU, CNN-GRU) all scored **100%** on "Normal vs Attack". In
+machine learning, a perfect score is almost always a warning sign: the model has probably found a
+shortcut. So we investigated instead of celebrating.
 
-### The Fix (Focal Loss)
-We replaced standard Cross-Entropy with **Focal Loss** (E03). Focal Loss mathematically forces the neural network to pay more attention to the rare, difficult-to-classify attacks and down-weights the easy, common ones. 
+### What the shortcut was
 
-**The incredible results:**
-- Overall Accuracy jumped to **91.6%**.
-- Macro-F1 score exploded to **0.408** (a massive ~55% improvement in detecting minority attacks).
+When a packet has no DNS or MQTT information, the dataset fills the empty field with a zero. But it
+wrote that zero **differently** depending on where the traffic came from:
+
+| How the empty `dns.qry.name.len` field was written | Normal packets | Attack packets |
+|---|---|---|
+| `"0"` | 1,613,798 | 0 |
+| `"0.0"` | 0 | 603,331 |
+
+To a human, `"0"` and `"0.0"` are the same number. To our preprocessing they were two different
+words, so they became two different columns. The model simply learned "if it says `0.0`, it's an
+attack". That is not intrusion detection; it is reading the answer off the formatting.
+
+### Why our first fix did not work
+
+Every MQTT packet in the dataset is Normal, and the old SHAP plots pointed at MQTT fields, so we
+first removed all MQTT features. The score stayed at 100%, because the DNS column carried exactly
+the same `"0"`/`"0.0"` trick. The old SHAP plots had hidden this by cutting the `_0` / `_0.0` ending
+off the feature names, so both spellings looked like one feature.
+
+### The real fix
+
+1. **Treat `"0"` and `"0.0"` as the same value** before encoding.
+2. **Remove 7 per-packet identifiers** (sequence numbers, checksums, stream index). They tell you
+   *which capture file* a packet came from, not how it behaves.
+3. **Remove all MQTT fields as a check.** The score is the same with or without them (0.8579 vs
+   0.8575), so the model no longer leans on "MQTT means normal".
+4. **Add automatic alarms:** a scan that checks whether any single feature still gives away the
+   answer, and a "fingerprint" check so training and SHAP refuse to run on the wrong data.
 
 ---
 
-## 4. The Data Limitation: Why We Can't Use "Real" Time-Series
-Since we are using a GRU (a time-series model), you might wonder why we aren't feeding it sequences of packets over time (e.g., analyzing 10 seconds of traffic at a time).
+## 3. The Honest Results
 
-We audited the dataset and discovered a fatal flaw in the raw data: **the timestamps are scattered, and there are essentially only 2 main device IPs dominating all the traffic.** 
-Because the dataset is stitched together from isolated attack scenarios, if we tried to group packets chronologically, we would accidentally separate entire attack classes into different splits (fatal data leakage). Therefore, our GRU model processes packets one by one (`seq_len=1`). It's important to document this limitation in any research paper so we don't scientifically misrepresent the GRU's capabilities on this specific dataset.
+### Normal vs Attack on Edge-IIoTset
+
+| Model | Macro-F1 | Accuracy | False alarms | Attacks caught |
+|---|---|---|---|---|
+| Before the fix (fake) | 1.000 | 100% | 0% | 100% |
+| **Our CNN-GRU** | **0.858** | **90.0%** | **0.7%** | **65.3%** |
+| XGBoost (tree model) | 0.868 | 90.7% | 0.6% | 67.3% |
+
+The model rarely raises a false alarm, but it misses about a third of attacks. Is that a weak
+model? We checked.
+
+### Why it stops at about two-thirds: the ceiling
+
+Many packets in this dataset look *exactly* the same. We found that **31.9% of attack packets have
+exactly the same features as packets that are mostly Normal**. No model, however clever, can tell
+identical inputs apart. Even a "perfect memoriser" would catch only **67.5%** of attacks. Our models
+catch 65.3% and 67.3%: they are already at the ceiling. Tuning did not help (20 automatic tuning
+trials gave the same test score), and three different random seeds give 0.8584, 0.8583 and 0.8582.
+
+### Do we need the hybrid?
+
+We compared it fairly against simpler networks. A tiny MLP (24 KB), a CNN, a GRU and our CNN-GRU
+**all reach 0.858**. On single-packet data, the hybrid gives no extra accuracy. We say this openly.
+
+### Can we trust the explanations?
+
+SHAP now points at real TCP behaviour: `tcp.flags`, `tcp.connection.rst`, `tcp.flags.ack`,
+`tcp.len`, `tcp.connection.fin`. To check SHAP is telling the truth, we retrained the model
+**without its top-5 SHAP features**: Macro-F1 fell from 0.858 to **0.605**. Removing 5 *random*
+features changed nothing (0.858). So SHAP really identifies what the model depends on.
+
+### Is it small and fast?
+
+On one CPU thread the CNN-GRU takes about 6.5 ms per packet. Storing its weights at half precision
+(FP16) shrinks it from 315 KB to **159 KB** with no loss in accuracy. Squeezing the GRU to 8-bit
+integers makes it 88 KB but costs 7.6 points of Macro-F1. XGBoost is faster on a CPU (0.8 ms).
+
+### Naming the attack type
+
+Telling *which* of the 14 attacks is happening is hard on single packets (XGBoost 0.429, CNN-GRU
+0.337). Floods and scans are defined by how *fast* packets arrive, and one packet cannot show speed;
+the dataset has no timing for attack packets. For the imbalance between common and rare attacks,
+**square-root class weights** worked best over 3 seeds (0.337), ahead of focal loss (0.254) and plain
+cross-entropy (0.238).
 
 ---
 
-## 5. What You Need To Do Next (Phase 3 & 4)
+## 4. The Second Dataset: CICIoT2023
 
-Everything mentioned above is fully implemented, audited, and tested. The codebase is safe and ready. 
-Here are the exact three steps you need to take to finish the project:
+CICIoT2023 describes short windows of traffic (flows) and includes **rate and timing**, exactly what
+Edge-IIoTset lacks. We ran the same honest pipeline and found **another hidden shortcut**: the
+`packet_count` column is just the size of the measurement window (10 for Benign/Recon, 100 for
+DDoS/DoS/Mirai). We removed it, along with the `source_file` column (which names the capture, i.e.
+the answer), and removed 87,417 duplicate rows before splitting.
 
-### Step 1: Run the Optuna Hyperparameter Tuning (E02)
-Now that we know Focal Loss works best, we need to find the absolute perfect neural network architecture (how many layers, what learning rate, what dropout rate). We have built a script using **Optuna** to automate this search.
+| Task | XGBoost | CNN-GRU |
+|---|---|---|
+| Benign vs Attack | 0.917 | 0.890 |
+| 8 categories | 0.752 | 0.675 |
 
-**Your Action:**
-Open your terminal and run:
-```bash
-python run_E02_hyperparameter_tuning.py
-```
-*(Note: This will train 20 different models to find the best one. It will take a few hours on a CPU, but it will aggressively kill bad models early to save time. Just let it run in the background!)*
+With timing information the CNN-GRU does much better than on single packets (binary 0.86 → 0.89,
+categories 0.34 → 0.68), and SHAP now lists `rate` among its top features, as you would expect.
 
-### Step 2: Model Compression (E08)
-Because this is an IoT project, deploying a massive Deep Learning model onto a tiny Edge device (like a Raspberry Pi) isn't practical. 
-Once Step 1 gives you the "Best Model," you need to apply **INT8 Post-Training Quantization**. This is a technique that shrinks the file size of the neural network by converting its 32-bit floating-point weights into 8-bit integers, slightly reducing accuracy but drastically reducing size.
+---
 
-### Step 3: Edge Benchmarking (E09)
-The final slide of your presentation or paper should prove that your model is lightweight. 
-You will need to write a small script that measures **CPU Inference Latency** (how many milliseconds it takes to analyze one packet) and **Memory Footprint** (how much RAM it uses). Comparing the original model to the compressed model will be the ultimate conclusion to this research!
+## 5. What Our Contribution Is
+
+1. We found and removed hidden shortcuts in **two** public IoT datasets that make models look
+   perfect.
+2. We **measured the ceiling** of the packet-level dataset and showed our model reaches it.
+3. We **proved** the explanations are faithful, instead of only showing SHAP plots.
+4. Everything is honest and reproducible: 3 seeds, fair comparison with simpler models, thresholds
+   chosen without looking at the test set, and a tested edge deployment.
+
+---
+
+## 6. Limitations (we say them first)
+
+- On single-packet features, the CNN-GRU is not better than an MLP or XGBoost.
+- About a third of Edge-IIoTset attack packets are indistinguishable from normal ones.
+- The GRU sees no real time dimension: each record is processed on its own.
+- Naming the attack type needs flow/timing data; rare classes (Web, BruteForce) remain weak.
+- One train/test split per dataset; no cross-dataset test yet.
+
+---
+
+## 7. What Comes Next
+
+1. **Use flow data as the main setting** (CICIoT2023) and pick the alarm threshold by how many false
+   alarms are acceptable.
+2. **Give the GRU real sequences**: consecutive flow windows per device or connection, so it can
+   learn how traffic changes over time. This is where a hybrid should finally help.
+3. **Help rare attacks**: keep square-root class weights, add targeted oversampling of Web and
+   BruteForce attacks.
+4. **Cross-dataset test**: train on one dataset, test on the other.
+5. **Deploy** the FP16 model on a Raspberry-Pi-class device and demo it live through the dashboard.
+
+To reproduce everything, see section 9 of [FINAL_RESULTS.md](FINAL_RESULTS.md) or the "How to run"
+section of the [README](../README.md).

@@ -1,199 +1,220 @@
 # Explainable Hybrid Deep Learning-Based Intrusion Detection System for IoT Networks
 
-This repository implements the research project: **Leakage-Aware and Explainable CNN-GRU Intrusion Detection for IoT Networks**.
+A lightweight, explainable intrusion detection system (IDS) for IoT: a hybrid **CNN-GRU** with
+**SHAP** explanations, evaluated honestly on **Edge-IIoTset** (2,219,201 packets, Normal + 14 attack
+types) and **CICIoT2023** (flow-level, 33 attacks in 7 categories + Benign).
 
-## Project Status — Phases 1-4 Complete ✅
-
-All planned experiments (E01–E08) and SHAP explainability have been trained/run to completion on the full Edge-IIoTset dataset. What remains is analysis, write-up, and optional extensions — see [Next Steps](#next-steps) below.
-
-### Phase 1: Data Acquisition & Audit (✅ Complete)
-- **Dataset Acquired:** Downloaded Kaggle Edge-IIoTset (`DNN-EdgeIIoT-dataset.csv`) (Hash: `1d3ef6c7cc22784a528a117f1158f5cad750273679437e18a39c360ee6b79fd7`).
-- **Audit & Leakage Policy:** Analyzed schema. Dropped raw IPs, timestamps, and metadata to prevent train-test shortcuts and enforce a strict **Operational Feature Policy**. Both `Attack_label` (binary target) and `Attack_type` (multiclass target) are excluded from the operational feature list, so training one target's model never leaks the other.
-- **Preprocessing & Memory Handling:** Implemented chunk-based and PyArrow fast-loading. Handled 4+ TB array memory explosion by eliminating >100 high-cardinality payload fields dynamically before One-Hot Encoding (e.g. `tcp.payload`, `tcp.options`, `http.request.full_uri` — anything with >100 unique values is dropped).
-- **Artifacts:** `X_train.parquet`, `X_val.parquet`, `X_test.parquet` splits saved efficiently to disk.
-
-### Phase 2: Baseline Machine Learning (✅ Complete)
-- **E01 — Random Forest Binary:** `Normal` vs `Attack`. F1 = 1.0000.
-- **E02 — Random Forest Multiclass:** 15 attack classes. Accuracy = 98.25%, Macro F1 = 0.8813 (struggles most on minority application-layer attacks like XSS and Fingerprinting, due to payload truncation).
-- **Experiment Tracking:** Auto-logged configurations, inference latency, and parameter sizes to `results/experiment_registry.csv`.
-
-### Phase 3: Deep Learning — Binary (✅ Complete)
-- **Framework:** PyTorch 2.11 (CUDA 12.8, tested on an NVIDIA RTX 4060 Laptop GPU).
-- **E03 — 1D-CNN:** Accuracy = 1.0000, F1 = 1.0000. 46,337 params, 0.18 MB.
-- **E04 — GRU:** Accuracy = 1.0000, F1 = 1.0000. 32,065 params, 0.13 MB. *Treated strictly as exploratory (sequence length=1) since timestamps/IPs were removed as leakage — this experiment does not claim real temporal structure.*
-- **E05 — CNN-GRU Hybrid (proposed architecture):** Accuracy = 1.0000, F1 = 1.0000. 21,121 params, 0.09 MB — the smallest and highest-accuracy model of the three.
-- **Run:** `python run_phase3_binary.py`
-
-### Phase 3: Deep Learning — Multiclass (✅ Complete)
-- **E06 — 1D-CNN Multiclass:** Accuracy = 95.11%, Macro F1 = 0.7036.
-- **E07 — GRU Multiclass:** Accuracy = 94.99%, Macro F1 = 0.6904.
-- **E08 — CNN-GRU Multiclass (proposed):** Accuracy = 94.74%, Macro F1 = 0.6445.
-- **Run:** `python run_phase3_multiclass.py` (re-preprocesses the dataset targeting `Attack_type`, then trains E06–E08)
-
-> Multiclass macro-F1 is noticeably lower than binary despite similar accuracy — this is the expected effect of severe class imbalance across the 15 attack types (a handful of rare classes drag macro-F1 down even when overall accuracy stays high). Worth digging into per-class metrics (see `classification_report.csv` per experiment) for the write-up.
-
-### Phase 4: Explainability — SHAP (✅ Complete)
-- **SHAP GradientExplainer** run on all three binary models (E03, E04, E05) — 150 background samples, 300 explained samples.
-- **Artifacts per experiment**, in `results/experiments/<id>/`: `shap_summary.png` (beeswarm), `shap_bar.png` (mean |SHAP| ranking), `shap_waterfall.png` (single high-confidence sample), `shap_importance.csv` (full ranked feature list).
-- **Top feature by mean |SHAP| per model:**
-  | Experiment | Model | Top SHAP feature |
-  |---|---|---|
-  | E05 | CNN-GRU (proposed) | `mqtt.topic` |
-  | E03 | 1D-CNN | `mqtt.protoname` |
-  | E04 | GRU | `mqtt.conack.flags` |
-
-  All three models converge on MQTT protocol fields as the dominant signal — worth a sentence or two in the discussion section, and a candidate ablation (see [Next Steps](#next-steps)).
-- **Run:** `python run_explainability.py` (see [⚠️ Known Gotcha](#️-known-gotcha-shap-must-run-against-binary-preprocessed-data) below before running this after a multiclass run)
+**Full results and the presentation source of truth: [docs/FINAL_RESULTS.md](docs/FINAL_RESULTS.md).**
+Details of the leakage fix: [docs/LEAKAGE_FIX_AND_CLEAN_BASELINES.md](docs/LEAKAGE_FIX_AND_CLEAN_BASELINES.md).
 
 ---
 
-## Full Results Table
+## Status (October 2026)
 
-| ID | Model | Task | Accuracy | Macro F1 | Params | Model Size | Train Time |
-|---|---|---|---|---|---|---|---|
-| E01 | Random Forest | Binary | 100.00% | 1.0000 | — | 12.0 MB | 63s |
-| E02 | Random Forest | Multiclass | 98.25% | 0.8813 | — | 1.59 GB | 56s |
-| E03 | 1D-CNN | Binary | 100.00% | 1.0000 | 46,337 | 0.18 MB | 363s |
-| E04 | GRU | Binary | 100.00% | 1.0000 | 32,065 | 0.13 MB | 384s |
-| **E05** | **CNN-GRU (proposed)** | **Binary** | **100.00%** | **1.0000** | **21,121** | **0.09 MB** | **402s** |
-| E06 | 1D-CNN | Multiclass | 95.11% | 0.7036 | 46,799 | 0.18 MB | 426s |
-| E07 | GRU | Multiclass | 94.99% | 0.6904 | 32,719 | 0.13 MB | 380s |
-| **E08** | **CNN-GRU (proposed)** | **Multiclass** | **94.74%** | **0.6445** | **21,583** | **0.09 MB** | **470s** |
+Done: shortcut audit and fix, strict feature policy, clean baselines, CNN-GRU tuning (3 seeds),
+ablation against simpler models, SHAP with a fidelity test, edge (CPU) benchmark, measured
+detection ceiling, and the same pipeline on a second dataset (CICIoT2023). Remaining work is listed
+under [Next steps](#limitations-and-next-steps).
 
-Full precision/recall/FPR/FNR/inference-latency numbers for every row: `results/experiment_registry.csv`. Per-experiment classification reports and feature importances: `results/experiments/<id>/`.
+### The first 100% accuracy was fake
 
----
+All first models (Random Forest, CNN, GRU, CNN-GRU) scored 100% on Normal vs Attack. The cause was
+a formatting artifact, not attack behaviour: Edge-IIoTset writes an empty protocol field as `"0"` in
+the Normal captures and as `"0.0"` in the attack captures, so after one-hot encoding a single column
+gives away the label.
 
-## Live Training Dashboard
+| Empty `dns.qry.name.len` written as | Normal rows | Attack rows |
+|---|---|---|
+| `"0"` | 1,613,798 | 0 |
+| `"0.0"` | 0 | 603,331 |
 
-A FastAPI dashboard serves live pipeline status, per-epoch training progress, and a tailing activity log.
+The same holds for `mqtt.topic`, `mqtt.protoname`, `mqtt.conack.flags`; the HTTP columns use `"0"`
+only for web attacks. Removing MQTT features alone did not help (the DNS column carries the same
+artifact), and the old SHAP plots hid it by stripping the `_0` / `_0.0` suffix from feature names.
+Evidence: `results/audit/empty_token_audit.csv` (`python audit_shortcuts.py --raw`).
 
-```bash
-# Terminal 1 — the dashboard server
-uvicorn dashboard.api:app --reload --port 8000
+**Shortcuts found and removed**
 
-# Terminal 2 — the status poller (writes pipeline_status.json every 2s)
-python pipeline_monitor.py
-```
-
-Then open **http://localhost:8000/pipeline**. It shows:
-- Pipeline step cards (dataset download → CUDA → preprocessing → binary DL → multiclass DL → SHAP), each with live percentage and detail text.
-- An experiment table with live per-epoch status (`Epoch 7/15 · train 0.12 · val 0.11`) for whatever is currently training.
-- An Activity Log panel tailing `pipeline.log` in real time, with a **Maximize** button (top-right of the panel) to expand it full-screen — click the backdrop or press `Esc` to close it.
-
-`http://localhost:8000/` serves a simpler project-status/experiments-summary page. `/api/status`, `/api/experiments`, `/api/experiments/{id}`, `/api/audit`, `/api/labels`, `/api/logs`, `/api/pipeline-status`, and `/api/training-progress` are the underlying JSON endpoints.
-
-Every logger created via `src.utils.setup_logger()` (preprocessing, training, explainability, and any pipeline-runner script) appends to `pipeline.log` at the repo root — this is what `/api/logs` tails, and what makes the dashboard's live log panel work regardless of which terminal or process actually ran the training.
-
-`src/training.py` also writes `training_progress.json` after every epoch (current experiment, epoch, train/val loss) — that's what makes the experiment table's live epoch detail possible without parsing the log text.
+| Dataset | Shortcut | Fix |
+|---|---|---|
+| Edge-IIoTset | `"0"` vs `"0.0"` spelling of empty fields | Canonicalise numeric-looking text before encoding |
+| Edge-IIoTset | 7 per-packet identifiers (`tcp.seq`, `tcp.ack`, `tcp.ack_raw`, `tcp.checksum`, `icmp.checksum`, `icmp.seq_le`, `udp.stream`) | Removed (`strict` policy) |
+| Edge-IIoTset | Every MQTT packet is Normal | All `mqtt.*` removed as a check (`strict_no_mqtt` policy) |
+| CICIoT2023 | `source_file` names the capture (the label) | Removed |
+| CICIoT2023 | `packet_count` is the extraction window size (10 for Benign/Recon, 100 for DDoS/DoS/Mirai); `total_sum = packet_count × mean_packet_size` | Both dropped; flag counts turned into fractions of the window |
 
 ---
 
-## ⚠️ Known Gotcha: SHAP must run against BINARY-preprocessed data
+## Results
 
-`src/preprocessing.py` **refits a fresh `OneHotEncoder` and `StandardScaler`** every time it runs, based on whichever `cfg.DEFAULT_TARGET_COL` is currently set (`Attack_label` for binary, `Attack_type` for multiclass). Because the two targets stratify the train/val/test split differently, the fitted encoder can end up with a **different number of output columns** between a binary run and a multiclass run (a rare categorical value may or may not land in the training fold depending on the split).
+### Edge-IIoTset, binary (Normal vs Attack), strict features, no MQTT (final setting)
 
-**Concretely:** if you run `run_phase3_multiclass.py` (which overwrites `data/processed/*.parquet` for the `Attack_type` target) and *then* run `run_explainability.py` without re-preprocessing for `Attack_label` first, SHAP will load E03/E04/E05 (binary models) against multiclass-preprocessed data:
-- **GRU (E04) will hard-crash** on `model.load_state_dict(...)` with a `size mismatch` error, because `nn.GRU`'s weight matrix shape is locked to `input_dim`.
-- **1D-CNN (E03) and CNN-GRU (E05) will *not* crash**, but silently compute SHAP values against the wrong scaler/encoding — because their `Conv1d`/`Linear` layer sizes only depend on `input_dim // 2`, and a difference of exactly one feature can floor-divide to the same value. This is worse than a crash: it produces plausible-looking but invalid explainability artifacts with no error at all.
+Test set, `results/experiment_registry.csv`:
 
-**The fix, if you ever need to redo this:** before running SHAP for the binary experiments, force-regenerate binary-consistent data:
-```python
-import src.config as cfg
-from src.preprocessing import run_preprocessing_pipeline
-cfg.DEFAULT_TARGET_COL = "Attack_label"
-run_preprocessing_pipeline()
-```
-Then run `run_explainability.py` (or call `run_shap_analysis(...)` directly). This is exactly what `run_shap_fix.py` in this repo does — keep it around as a template, or as a one-liner to rerun if you ever need to regenerate the binary SHAP artifacts again after another multiclass run.
+| Model | Macro-F1 | Accuracy | False alarms | Attacks detected | ROC-AUC |
+|---|---|---|---|---|---|
+| Original pipeline (leaky) | 1.000 | 100% | 0% | 100% | - |
+| **CNN-GRU (tuned, ours)** | **0.858** | **90.0%** | **0.7%** | **65.3%** | 0.904 |
+| XGBoost (GPU) | 0.868 | 90.7% | 0.6% | 67.3% | 0.917 |
 
-There's also a second, independent SHAP bug already patched in `src/explainability.py`: newer versions of the `shap` library return an extra trailing output-dimension axis (`(N, D, 1)`) for single-logit binary models instead of `(N, D)`. The code now squeezes that away before slicing a single sample for the waterfall plot — if you upgrade `shap` and see a `waterfall plot can currently only plot a single explanation` error again, that's the same class of bug resurfacing with a different array shape.
+* **Robust:** without vs with MQTT 0.8575 vs 0.8579; 3 seeds 0.8584 / 0.8583 / 0.8582; Optuna (20
+  trials) best validation 0.8596, test 0.858, same as untuned.
+* **Measured ceiling** (`results/audit/detection_ceiling.json`): the 1,553,440 training packets
+  contain only 11,122 distinct feature patterns; 31.9% of attack packets look exactly like patterns
+  that are mostly Normal. A perfect "memorise every pattern" classifier detects only 67.5% of
+  attacks (at 0.5% false alarms), so both models are at the ceiling.
+* **Trade-off** (`results/operating_points.csv`, thresholds chosen on validation): lowering the
+  threshold raises CNN-GRU detection to 73.3% at 6.6% false alarms.
+
+### Ablation: is the hybrid needed? (3 seeds each)
+
+| Model | Macro-F1 (mean) | Parameters | File size |
+|---|---|---|---|
+| MLP | 0.858 | 5,441 | 24 KB |
+| 1D-CNN | 0.858 | 25,857 | 106 KB |
+| GRU | 0.858 | 24,577 | 99 KB |
+| CNN-GRU (tuned) | 0.858 | 79,169 | 315 KB |
+| XGBoost | 0.868 | 226 trees | 492 KB |
+
+On per-packet features the hybrid gives no accuracy gain; all networks hit the same ceiling.
+
+### Explainability with a fidelity test (`results/shap_fidelity.json`)
+
+* SHAP top features (final CNN-GRU): `tcp.flags`, `tcp.connection.rst`, `tcp.flags.ack`, `tcp.len`,
+  `tcp.connection.fin` (real TCP behaviour).
+* Retrain without the top-5 SHAP features: Macro-F1 0.858 → **0.605**. Without 5 random features:
+  0.858 → 0.858. SHAP identifies what the model really depends on.
+
+### Edge benchmark (1 CPU thread, `results/edge_benchmark.csv`)
+
+| Version | Macro-F1 | Size | Latency per packet | Throughput |
+|---|---|---|---|---|
+| CNN-GRU FP32 | 0.858 | 315 KB | 6.4 ms | 1,500 rows/s |
+| **CNN-GRU FP16 weights** | **0.858** | **159 KB** | 6.5 ms | 1,660 rows/s |
+| CNN-GRU INT8 (Linear only) | 0.858 | 304 KB | 8.1 ms | 1,620 rows/s |
+| CNN-GRU INT8 (GRU + Linear) | 0.782 | 88 KB | 13.3 ms | 2,050 rows/s |
+| XGBoost | 0.868 | 492 KB | 0.8 ms | 30,700 rows/s |
+
+### Attack type (14 attacks + Normal), Edge-IIoTset strict
+
+Weak on packet data: XGBoost 0.429 Macro-F1, CNN-GRU 0.337 ± 0.033. Loss study over 3 seeds: sqrt
+class weights 0.337 > focal 0.254 > cross-entropy 0.238. Floods and scans are defined by packet
+rate, which a single packet cannot show (`udp.time_delta` is 0 for every attack row).
+
+### CICIoT2023 (flow-level, with rate and timing): `python run_ciciot.py --policy strict`
+
+1.41M-row capped sample, 87,417 duplicates removed before splitting; shortcut scan after the fix:
+best single feature 0.85, depth-3 tree 0.85 (no giveaway).
+
+| Task | Model | Macro-F1 | Notes |
+|---|---|---|---|
+| Benign vs Attack | XGBoost | **0.917** | detects 93.4%, 8.4% false alarms; ROC-AUC 0.979 |
+| Benign vs Attack | CNN-GRU | **0.890** | detects 90.4%, 9.6% false alarms; ROC-AUC 0.966 |
+| 8 categories | XGBoost | **0.752** | |
+| 8 categories | CNN-GRU, sqrt weights | **0.675** | cross-entropy: 0.620 |
+
+At ≤ 1% false alarms: XGBoost detects 86.6%, CNN-GRU 82.3%. SHAP (CNN-GRU): `header_length`,
+`ack_count_frac`, `rate`, `https`, `arp`.
+
+### Figures (`results/figures/`, built by `make_figures.py`)
+
+* [fig1_fake_vs_honest.png](results/figures/fig1_fake_vs_honest.png): leaky vs honest results
+* [fig2_shap_fidelity.png](results/figures/fig2_shap_fidelity.png): SHAP removal test
+* [fig3_model_comparison.png](results/figures/fig3_model_comparison.png): ablation
+* [fig4_datasets.png](results/figures/fig4_datasets.png): Edge-IIoTset vs CICIoT2023
+* [fig5_detection_ceiling.png](results/figures/fig5_detection_ceiling.png): detection ceiling
 
 ---
 
-## Setup Instructions
+## Setup
 
-### 1. Python Virtual Environment
-**Windows**:
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1          # Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt       # includes torch, optuna, xgboost, psutil
+pip install rich                      # used by watch_dashboard.py
+pip install -r dashboard/requirements_dashboard.txt   # only for the FastAPI web dashboard
 ```
 
-**Linux/macOS**:
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
+For GPU training install the CUDA build of PyTorch (tested on an RTX 4060 Laptop GPU); everything
+also runs on CPU, more slowly.
 
-### 2. Install Dependencies
-```bash
-pip install -r requirements.txt
-pip install torch torchvision
-pip install -r dashboard/requirements_dashboard.txt   # only needed for the live dashboard
-```
+**Datasets** (not in the repository):
 
-### 3. Collaborator Setup (Dataset Download)
-Since the `1.6GB` dataset and large `.parquet` intermediate files are not pushed to GitHub, collaborators must download the original dataset locally.
-We have written an automation script that handles this safely:
-```bash
-python download_dataset.py
-```
-This script uses `kagglehub` to download the exact dataset version and places `DNN-EdgeIIoT-dataset.csv` into `data/raw/` automatically.
-
-### 4. Full Pipeline Execution Order
-```bash
-# Step 1: Download dataset (once)
-python download_dataset.py
-
-# Step 2: Preprocessing (binary target)
-python -m src.preprocessing
-
-# Step 3: Phase 3A — Binary DL experiments (E03, E04, E05)
-python run_phase3_binary.py
-
-# Step 4: Phase 3B — Multiclass DL experiments (E06, E07, E08)
-#         (re-preprocesses data/processed/* for the Attack_type target)
-python run_phase3_multiclass.py
-
-# Step 5: Phase 4 — SHAP Explainability (binary models only)
-#         ⚠️ See "Known Gotcha" above — data/processed/* is currently
-#         multiclass-preprocessed after Step 4. Re-run binary preprocessing
-#         first, or just run run_shap_fix.py which does this for you.
-python run_explainability.py
-
-# Step 6: Launch Dashboard
-uvicorn dashboard.api:app --reload
-python pipeline_monitor.py   # in a second terminal
-```
-
-Alternatively, `run_remaining_pipeline.py` chains Steps 3–5 (skipping whatever's already complete) into a single script — see [Next Steps](#next-steps) for how to adapt it for further work.
-
-## Reproducibility
-- Every metric reported must come from an actual execution on the full dataset (no arbitrary downsampling).
-- Global seed (`42`) controls random splits, numpy, and PyTorch layer initialization for replicability — `src.config.set_seeds()` seeds `random`, `numpy`, and `torch` (CPU and CUDA) consistently, so re-running preprocessing with the same target column reproduces the exact same train/val/test split and encoder fit.
-- See `results/experiment_registry.csv` for tracked metric outputs across all tested models.
-- Dataset SHA-256 hash is verified on every run: `1d3ef6c7cc22784a528a117f1158f5cad750273679437e18a39c360ee6b79fd7`
+* **Edge-IIoTset:** `python download_dataset.py` downloads it with `kagglehub` and places
+  `DNN-EdgeIIoT-dataset.csv` in `data/raw/`. SHA-256 of the file used:
+  `1d3ef6c7cc22784a528a117f1158f5cad750273679437e18a39c360ee6b79fd7`.
+* **CICIoT2023:** downloaded automatically by `run_ciciot.py` via `kagglehub`
+  (`dhoogla/ciciotdataset2023`, 46.8M rows) into the user's kagglehub cache, **outside the project
+  folder** (and outside OneDrive). Only the sampled, processed splits are written to
+  `data/processed_ciciot*/`.
 
 ---
 
-## Next Steps
+## How to run
 
-Training and explainability are done. What's left is analysis, write-up, and optional deepening:
+```bash
+python audit_shortcuts.py --raw                                    # "0"/"0.0" artifact evidence
+python run_clean_baselines.py --policy strict_no_mqtt --stage binary  # preprocess + shortcut scan + baselines
+python run_tune_cnn_gru.py --trials 20 --prefix F                  # Optuna tuning + 3 seeds
+python run_final_studies.py                                        # ablation, SHAP, fidelity, edge benchmark
+python run_operating_points.py && python audit_ceiling.py          # trade-off and detection ceiling
+python run_ciciot.py --policy strict                               # CICIoT2023 (data + training)
+python make_figures.py                                             # results/figures/*.png
+python watch_dashboard.py                                          # live progress (separate window)
+```
 
-1. **Comparative analysis & ablation write-up.** All 8 experiments plus SHAP are in `results/`. Write the comparative section: binary models are all near-ceiling (1.0 F1) so the interesting story is in the multiclass numbers (E06 vs E07 vs E08) and per-class breakdowns in each `classification_report.csv` — which attack types drag macro-F1 down, and does the CNN-GRU hybrid actually help there or just match the baselines?
-2. **Per-class multiclass diagnostics.** Macro F1 sits around 0.64–0.70 for E06–E08 despite ~95% accuracy — pull the per-class rows out of `results/experiments/E06_cnn1d_multiclass/classification_report.csv` (and E07/E08) to identify exactly which minority attack types are underperforming, and consider whether class-weighted loss or oversampling is worth a follow-up experiment.
-3. **SHAP on the multiclass models (E06–E08).** Phase 4 as originally scoped only covers the binary models. `run_shap_analysis()` already supports `task_type="multiclass"` (it averages `|SHAP|` across the softmax outputs) — extending `run_explainability.py`'s experiment list to include E06/E07/E08 is a small addition, mindful of the same binary-vs-multiclass preprocessing gotcha above (in this direction it's simpler: multiclass SHAP needs multiclass-preprocessed data, so don't run it back-to-back with the binary SHAP step without re-preprocessing in between).
-4. **MQTT-field ablation.** All three binary models rank an MQTT protocol field as their top SHAP feature (`mqtt.topic`, `mqtt.protoname`, `mqtt.conack.flags`). Worth an ablation experiment: retrain without MQTT-prefixed features and see how much accuracy degrades — this would meaningfully strengthen the explainability section by showing the SHAP ranking is causally, not just correlationally, important.
-5. **Explore GradCAM / attention-based explainability** as a second XAI method to compare against SHAP, since the README's original XAI scope mentioned GradCAM as a possibility alongside SHAP.
-6. **Report & Publication (Phase 5, not started).** Final research paper write-up: methodology, leakage-audit rationale, the full comparative table above, SHAP figures, discussion, and limitations (particularly the GRU's explicitly-exploratory seq_len=1 framing, and the class-imbalance effect on multiclass macro-F1).
-7. **Dashboard/inference hardening (optional, not required for the paper).** `POST /api/predict` in `dashboard/api.py` is currently a stub that just checks the model file exists — wiring it up to actually run the saved `cnn_gru_final.pt` on a submitted feature vector would make the dashboard demo-able end-to-end, not just a results viewer.
+* `run_clean_baselines.py --policy` takes `operational`, `strict` or `strict_no_mqtt`;
+  `--study losses --seeds 42 7 2024` runs the multiclass loss comparison.
+* Long runs: `python run_queue.py "<script> <args>" ...` runs commands one after another and keeps
+  Windows awake for the whole sequence. Keep the lid open and the laptop plugged in (on battery the
+  GPU is throttled).
 
-### For another contributor/agent picking this up
+### Safeguards built into the pipeline
 
-If you're starting fresh (or resuming after this session), read `pipeline.log` and `pipeline_status.json` first — they capture exactly what was run and in what order, more reliably than trying to infer it from file timestamps.
+* `data/processed/metadata.json` records target, feature policy, canonicalisation flag, feature
+  list and a fingerprint. Training refuses data built for a different target, and SHAP refuses to
+  explain a model whose fingerprint does not match `data/processed/` (an earlier SHAP plot had
+  explained a model with the wrong inputs).
+* Automatic shortcut scan (single-feature stumps, depth-3 tree) after every preprocessing run.
+* 3 seeds for every comparison; decision thresholds chosen on validation only.
 
-- **To check what's actually done vs. still pending:** `results/experiment_registry.csv` has one row per completed experiment (E01–E08 as of this writing) with real metrics — if an experiment ID isn't a row there, it hasn't finished. `results/experiments/<id>/experiment_record.json` existing is the per-experiment equivalent of "this one is done."
-- **To resume/extend training:** don't just rerun `run_phase3_binary.py` as-is — E03 is commented out in its `main()` because it's already done; re-enable it only if you intend to retrain it. Prefer writing a small one-off runner script (see `run_remaining_pipeline.py` as a template) that only calls `train_dl_model(...)` for the specific experiment IDs you actually need, so you don't waste 5-7 minutes of GPU time re-running something that already succeeded.
-- **Before touching `data/processed/*.parquet`:** check which target column it currently reflects. There's no marker file for this — the safest check is `pd.read_parquet('data/processed/y_train.parquet').nunique()`: `2` means binary, `15` means multiclass. Re-preprocessing overwrites this data for whichever `cfg.DEFAULT_TARGET_COL` is active, and any binary model you try to load/explain afterward needs it back in binary form (see the Known Gotcha above).
-- **Live progress while a long run is going:** start `pipeline_monitor.py` and `uvicorn dashboard.api:app --reload` (see Live Training Dashboard above) *before* kicking off training, then watch `http://localhost:8000/pipeline`. `pipeline.log` (repo root) is the ground truth for exactly what happened and when — every logger in this codebase appends to it, so `tail -f pipeline.log` (or `grep` it for `Error|Traceback|Finished|Epoch`) is the fastest way to see if something's stuck, crashed, or progressing normally, even without the dashboard running.
-- **If GPU/CUDA isn't available:** `src/training.py` auto-falls-back to CPU (`torch.device("cuda" if torch.cuda.is_available() else "cpu")`), but expect binary experiments to take much longer than the ~6-7 minutes each took here on an RTX 4060 Laptop GPU.
+### Live demo (for the presentation)
+
+```bash
+python -m uvicorn dashboard.api:app --port 8000
+```
+
+Open http://127.0.0.1:8000/#predict-demo. The final CNN-GRU classifies a real held-out test packet
+(never seen in training), shows the attack probability, whether it was right, the CPU latency, and
+the top SHAP reasons for that packet. Buttons pick a random attack, normal, or any packet. The model
+loads in the background on start-up (about 30 s); it is only served when `data/processed/` matches
+its training data (otherwise the page says which preprocessing command to run).
+
+### Monitoring
+
+* `python watch_dashboard.py`: terminal dashboard reading `run_status.json`,
+  `training_progress.json`, `results/experiment_registry.csv` and `pipeline.log`. It can be started
+  or stopped at any time without affecting the run.
+* Web dashboard (optional): `uvicorn dashboard.api:app --reload --port 8000` plus
+  `python pipeline_monitor.py` in a second terminal, then open http://localhost:8000/pipeline.
+
+---
+
+## Limitations and next steps
+
+Limitations: on per-packet features the CNN-GRU is not better than an MLP or XGBoost; about a third
+of Edge-IIoTset attack packets are indistinguishable from normal ones; the GRU sees no real time
+dimension; attack-type detection needs flow/timing data; single split per dataset, no cross-dataset
+test yet.
+
+| Gap | Plan |
+|---|---|
+| Missed attacks on packet data | Use flow-level data (CICIoT2023) as the main setting; choose thresholds by acceptable false-alarm rate |
+| Hybrid gives no gain | Give the GRU real sequences (consecutive flow windows per device/connection) |
+| Weak rare classes | Sqrt class weights (already +0.06), targeted oversampling of Web/BruteForce |
+| Generalisation | Cross-dataset test (train on one dataset, test on the other with shared features) |
+| Deployment | FP16 model on a Raspberry-Pi-class device (live dashboard demo is already working) |
+
+Results for every experiment: `results/experiment_registry.csv`; per-experiment artifacts in
+`results/experiments/<id>/`.
