@@ -1,0 +1,20 @@
+{
+    "Edge-IIoTset (strict, no MQTT)": {
+        "feature_policy": "strict_no_mqtt",
+        "train_rows": 1553440,
+        "distinct_train_patterns": 11122,
+        "test_rows_with_seen_pattern": 0.99470080899781,
+        "attacks_with_mostly_normal_pattern": 0.31912872511984447,
+        "lookup_detection_rate_on_seen": 0.6746469674106439,
+        "lookup_false_alarm_rate_on_seen": 0.005294760951653839
+    },
+    "CICIoT2023 (strict)": {
+        "feature_policy": "ciciot_flow_strict",
+        "train_rows": 928279,
+        "distinct_train_patterns": 917130,
+        "test_rows_with_seen_pattern": 0.022843583788294673,
+        "attacks_with_mostly_normal_pattern": 0.00013666016931475713,
+        "lookup_detection_rate_on_seen": 0.9957955299845098,
+        "lookup_false_alarm_rate_on_seen": 0.92
+    }
+}
