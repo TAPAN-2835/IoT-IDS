@@ -1,220 +1,358 @@
-# Explainable Hybrid Deep Learning-Based Intrusion Detection System for IoT Networks
+# Explainable, Lightweight Intrusion Detection for IoT Networks
 
-A lightweight, explainable intrusion detection system (IDS) for IoT: a hybrid **CNN-GRU** with
-**SHAP** explanations, evaluated honestly on **Edge-IIoTset** (2,219,201 packets, Normal + 14 attack
-types) and **CICIoT2023** (flow-level, 33 attacks in 7 categories + Benign).
+A deep-learning **intrusion detection system (IDS)** for IoT networks that is **accurate**,
+**explainable** (it shows *why* it raised an alarm) and **small enough for an IoT gateway**.
 
-**Full results and the presentation source of truth: [docs/FINAL_RESULTS.md](docs/FINAL_RESULTS.md).**
-Details of the leakage fix: [docs/LEAKAGE_FIX_AND_CLEAN_BASELINES.md](docs/LEAKAGE_FIX_AND_CLEAN_BASELINES.md).
+The model is a hybrid **CNN-GRU** with **SHAP** explanations, tested on two public IoT datasets:
+**Edge-IIoTset** (2.2 million network packets) and **CICIoT2023** (network flows with timing data).
 
----
-
-## Status (October 2026)
-
-Done: shortcut audit and fix, strict feature policy, clean baselines, CNN-GRU tuning (3 seeds),
-ablation against simpler models, SHAP with a fidelity test, edge (CPU) benchmark, measured
-detection ceiling, and the same pipeline on a second dataset (CICIoT2023). Remaining work is listed
-under [Next steps](#limitations-and-next-steps).
-
-### The first 100% accuracy was fake
-
-All first models (Random Forest, CNN, GRU, CNN-GRU) scored 100% on Normal vs Attack. The cause was
-a formatting artifact, not attack behaviour: Edge-IIoTset writes an empty protocol field as `"0"` in
-the Normal captures and as `"0.0"` in the attack captures, so after one-hot encoding a single column
-gives away the label.
-
-| Empty `dns.qry.name.len` written as | Normal rows | Attack rows |
-|---|---|---|
-| `"0"` | 1,613,798 | 0 |
-| `"0.0"` | 0 | 603,331 |
-
-The same holds for `mqtt.topic`, `mqtt.protoname`, `mqtt.conack.flags`; the HTTP columns use `"0"`
-only for web attacks. Removing MQTT features alone did not help (the DNS column carries the same
-artifact), and the old SHAP plots hid it by stripping the `_0` / `_0.0` suffix from feature names.
-Evidence: `results/audit/empty_token_audit.csv` (`python audit_shortcuts.py --raw`).
-
-**Shortcuts found and removed**
-
-| Dataset | Shortcut | Fix |
-|---|---|---|
-| Edge-IIoTset | `"0"` vs `"0.0"` spelling of empty fields | Canonicalise numeric-looking text before encoding |
-| Edge-IIoTset | 7 per-packet identifiers (`tcp.seq`, `tcp.ack`, `tcp.ack_raw`, `tcp.checksum`, `icmp.checksum`, `icmp.seq_le`, `udp.stream`) | Removed (`strict` policy) |
-| Edge-IIoTset | Every MQTT packet is Normal | All `mqtt.*` removed as a check (`strict_no_mqtt` policy) |
-| CICIoT2023 | `source_file` names the capture (the label) | Removed |
-| CICIoT2023 | `packet_count` is the extraction window size (10 for Benign/Recon, 100 for DDoS/DoS/Mirai); `total_sum = packet_count × mean_packet_size` | Both dropped; flag counts turned into fractions of the window |
+> **In one sentence:** the "100% accuracy" this dataset usually gives comes from hidden shortcuts
+> in the data. We found and removed them, measured how good a model *can* honestly be, proved our
+> explanations are faithful, and showed which kind of data is needed to recognise attack types.
 
 ---
 
-## Results
+## 📌 Contents
 
-### Edge-IIoTset, binary (Normal vs Attack), strict features, no MQTT (final setting)
+1. [The project in 1 minute](#-the-project-in-1-minute)
+2. [Key results](#-key-results)
+3. [How we got there](#-how-we-got-there)
+4. [Quick start](#-quick-start)
+5. [Live demo](#-live-demo)
+6. [Re-run the experiments](#-re-run-the-experiments)
+7. [Project structure](#-project-structure)
+8. [Detailed results](#-detailed-results)
+9. [Limitations and next steps](#-limitations-and-next-steps)
+10. [Documentation guide](#-documentation-guide)
+11. [Datasets and credits](#-datasets-and-credits)
 
-Test set, `results/experiment_registry.csv`:
+---
 
-| Model | Macro-F1 | Accuracy | False alarms | Attacks detected | ROC-AUC |
-|---|---|---|---|---|---|
-| Original pipeline (leaky) | 1.000 | 100% | 0% | 100% | - |
-| **CNN-GRU (tuned, ours)** | **0.858** | **90.0%** | **0.7%** | **65.3%** | 0.904 |
-| XGBoost (GPU) | 0.868 | 90.7% | 0.6% | 67.3% | 0.917 |
+## ⏱ The project in 1 minute
 
-* **Robust:** without vs with MQTT 0.8575 vs 0.8579; 3 seeds 0.8584 / 0.8583 / 0.8582; Optuna (20
-  trials) best validation 0.8596, test 0.858, same as untuned.
-* **Measured ceiling** (`results/audit/detection_ceiling.json`): the 1,553,440 training packets
-  contain only 11,122 distinct feature patterns; 31.9% of attack packets look exactly like patterns
-  that are mostly Normal. A perfect "memorise every pattern" classifier detects only 67.5% of
-  attacks (at 0.5% false alarms), so both models are at the ceiling.
-* **Trade-off** (`results/operating_points.csv`, thresholds chosen on validation): lowering the
-  threshold raises CNN-GRU detection to 73.3% at 6.6% false alarms.
+| | |
+|---|---|
+| **Problem** | IoT devices (sensors, cameras, meters) are easy to attack and too weak to run heavy security software. |
+| **Goal** | An IDS that is **accurate**, **explainable** and **lightweight**. |
+| **What went wrong first** | Every model scored **100%**, which was too good to be true. |
+| **Why** | The dataset writes empty fields as `"0"` in normal traffic but `"0.0"` in attack traffic. Models read the formatting, not the attack. |
+| **What we did** | Removed this and other shortcuts, added automatic checks, retrained everything honestly. |
+| **Honest result** | **0.858 Macro-F1, 90% accuracy, 0.7% false alarms** (Normal vs Attack). |
+| **Explainable?** | Yes, and **proven**: removing the features SHAP points to drops the score from 0.86 to 0.60. |
+| **Lightweight?** | Yes: **159 KB** model, about **6 ms** per packet on one CPU core. |
+| **Second dataset** | CICIoT2023 (with timing data): **0.89–0.92** Macro-F1 for detection, **0.68–0.75** for attack categories. |
 
-### Ablation: is the hybrid needed? (3 seeds each)
+---
 
-| Model | Macro-F1 (mean) | Parameters | File size |
+## 📊 Key results
+
+**1. The 100% was fake; the honest score is about 0.86**
+
+![Fake vs honest results](results/figures/fig1_fake_vs_honest.png)
+
+**2. Our model is at the limit of what this data allows.** About a third of attack packets look
+*exactly* like normal packets, so even a perfect model could catch only 67.5% of attacks. Ours
+catches 65.3%.
+
+![Detection ceiling](results/figures/fig5_detection_ceiling.png)
+
+**3. The explanations are faithful.** Removing the 5 features SHAP ranks highest breaks the model;
+removing 5 random features changes nothing.
+
+![SHAP fidelity test](results/figures/fig2_shap_fidelity.png)
+
+**4. Data with timing makes attack types learnable** (CICIoT2023 vs Edge-IIoTset).
+
+![Edge-IIoTset vs CICIoT2023](results/figures/fig4_datasets.png)
+
+**5. Honest comparison: simpler networks do just as well on per-packet data** (all reach 0.858;
+the MLP is the smallest at 24 KB).
+
+![Model comparison](results/figures/fig3_model_comparison.png)
+
+---
+
+## 🧭 How we got there
+
+```
+Raw packets ──► Find shortcuts ──► Remove them ──► Train on GPU ──► Explain (SHAP) ──► Prove SHAP ──► Shrink for edge
+ (2.2M rows)    "0" vs "0.0",      clean, strict    CNN-GRU +       which features   remove top      FP16: 159 KB,
+                packet IDs, MQTT   feature set      baselines       matter           features         6 ms / packet
+```
+
+| Step | What we did | Why |
+|---|---|---|
+| 1. Audit | Compared how each class writes empty fields | The 100% score needed an explanation |
+| 2. Fix | Wrote `"0"` and `"0.0"` the same way; removed 7 per-packet ID fields and all MQTT fields | They identify the *recording*, not the attack |
+| 3. Check | Automatic "shortcut scan" after every preprocessing run | Catches any single feature that gives the answer away |
+| 4. Train | CNN-GRU on the GPU, tuned with Optuna, 3 random seeds | Results must be stable, not lucky |
+| 5. Compare | Same data for MLP, 1D-CNN, GRU and XGBoost | Is the hybrid really needed? |
+| 6. Explain | SHAP, then retrain without the top SHAP features | Prove the explanations are true |
+| 7. Deploy | CPU benchmark of FP32 / FP16 / INT8 versions | Show it fits an IoT gateway |
+| 8. Second dataset | Same pipeline on CICIoT2023; found and removed a second shortcut (`packet_count`) | Test whether the limit is the model or the data |
+
+---
+
+## 🚀 Quick start
+
+**Requirements:** Python 3.10+ (tested on 3.13), Windows/Linux/macOS. A CUDA GPU is optional but
+much faster (tested on an RTX 4060 Laptop GPU).
+
+```bash
+# 1. Get the code
+git clone https://github.com/TAPAN-2835/IoT-IDS.git
+cd IoT-IDS
+
+# 2. Create an environment and install packages
+python -m venv .venv
+.venv\Scripts\activate                 # Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+pip install -r dashboard/requirements_dashboard.txt   # only for the web dashboard / live demo
+
+# 3. Download the main dataset (Edge-IIoTset, about 1.2 GB) into data/raw/
+python download_dataset.py
+
+# 4. Prepare the data (cleaning + shortcut check) and train the baselines
+python run_clean_baselines.py --policy strict_no_mqtt --stage binary
+```
+
+> For GPU training, install the CUDA build of PyTorch from <https://pytorch.org>. Everything also
+> runs on the CPU, just more slowly.
+
+---
+
+## 🎬 Live demo
+
+The web dashboard has a live demo: the final model classifies **real test packets it has never
+seen** and shows **why**, using SHAP.
+
+```bash
+python -m uvicorn dashboard.api:app --port 8000
+```
+
+Open **<http://127.0.0.1:8000/#predict-demo>** and click *Random attack packet*.
+
+You will see the verdict (ATTACK / NORMAL), the attack probability, whether it was correct, the
+time taken on the CPU, and the top reasons (for example `tcp.flags`, `tcp.len`).
+
+* The model loads in the background when the server starts (about 30 seconds).
+* The final model must be trained first (`run_tune_cnn_gru.py`) and `data/processed/` must hold
+  the matching data; otherwise the page tells you which command to run.
+
+---
+
+## 🔁 Re-run the experiments
+
+Each command saves its results to `results/`. Watch progress live with
+`python watch_dashboard.py` in a second terminal.
+
+| Command | What it does | Time* |
+|---|---|---|
+| `python audit_shortcuts.py --raw` | Shows the `"0"` vs `"0.0"` shortcut in the raw data | 1 min |
+| `python run_clean_baselines.py --policy strict_no_mqtt --stage binary` | Clean data + shortcut scan + XGBoost and CNN-GRU | 6 min |
+| `python run_tune_cnn_gru.py --trials 20 --prefix F` | Tunes the CNN-GRU, then trains the best one with 3 seeds | 45 min |
+| `python run_final_studies.py` | Model comparison, SHAP, SHAP fidelity test, edge benchmark | 30 min |
+| `python run_operating_points.py` | Detection vs false-alarm trade-off | 1 min |
+| `python audit_ceiling.py` | Measures the best detection rate any model could reach | 1 min |
+| `python run_ciciot.py --policy strict` | Second dataset (downloads 718 MB once) + 5 experiments | 10 min |
+| `python make_figures.py` | Rebuilds the charts in `results/figures/` | 10 s |
+
+\* On an RTX 4060 laptop, plugged in.
+
+**Tips for long runs on a laptop**
+
+* `python run_queue.py "script1.py --args" "script2.py"` runs several commands in a row and keeps
+  Windows from going to sleep in between. Keep the lid open and the charger connected (on battery
+  the GPU is slowed down).
+* The pipeline uses little RAM (about 3.4 GB at peak): the CSV is streamed and training data is
+  kept on the GPU.
+
+**Built-in safety checks**
+
+* Every processed dataset gets a *fingerprint*. Training and SHAP refuse to run on data that does
+  not match the model (this prevents explaining a model with the wrong inputs).
+* A shortcut scan runs after every preprocessing step.
+* Thresholds and tuning use the validation set only; the test set is used once, for reporting.
+
+---
+
+## 🗂 Project structure
+
+```
+IoT-IDS/
+├── src/                      Core library
+│   ├── config.py             Paths, seeds, training settings, shortcut-fix switch
+│   ├── data_loader.py        Low-RAM streaming CSV loader
+│   ├── preprocessing.py      Cleaning, "0"/"0.0" fix, encoding, data fingerprint
+│   ├── models.py             CNN-GRU, 1D-CNN, GRU, MLP
+│   ├── training.py           GPU training, class weights, threshold tuning
+│   ├── train.py              XGBoost (GPU) and Random Forest baselines
+│   ├── explainability.py     SHAP with the wrong-data guard
+│   ├── ciciot.py             CICIoT2023 sampling and cleaning
+│   └── run_status.py         Progress file for the terminal dashboard
+│
+├── audit_shortcuts.py        Shortcut evidence and scans
+├── audit_ceiling.py          Best possible detection rate
+├── run_clean_baselines.py    Main experiment runner (feature policies, loss study)
+├── run_tune_cnn_gru.py       Optuna tuning + final 3-seed runs
+├── run_final_studies.py      Model comparison, SHAP, fidelity test, edge benchmark
+├── run_edge_benchmark.py     CPU size/speed benchmark (FP32 / FP16 / INT8 / XGBoost)
+├── run_operating_points.py   Detection vs false-alarm trade-off
+├── run_ciciot.py             Second dataset (CICIoT2023)
+├── run_queue.py              Run several commands without the laptop sleeping
+├── make_figures.py           Presentation charts
+├── watch_dashboard.py        Live terminal dashboard
+│
+├── dashboard/                Web dashboard + live prediction demo (FastAPI)
+├── results/
+│   ├── experiment_registry.csv   One row per experiment (all metrics)
+│   ├── experiments/<id>/         Per-experiment reports, confusion matrices, SHAP plots
+│   ├── figures/                  Charts used in this README and the slides
+│   └── audit/                    Shortcut evidence, feature policies, ceiling
+├── docs/                     Results, Q&A and study material (see below)
+└── tests/                    Unit tests (python -m pytest tests)
+```
+
+Scripts named `run_phase*.py`, `run_E0*.py`, `run_remaining_pipeline.py` and `run_shap_fix.py`
+produced the **original, leaky** experiments (E01–E08). They are kept for history; do not use
+their results.
+
+---
+
+## 📋 Detailed results
+
+All numbers are on the held-out test set. Full tables: [docs/FINAL_RESULTS.md](docs/FINAL_RESULTS.md).
+
+<details>
+<summary><b>Edge-IIoTset: Normal vs Attack (final setting)</b></summary>
+
+| Model | Macro-F1 | Accuracy | False alarms | Attacks detected |
+|---|---|---|---|---|
+| Original pipeline (leaky, fake) | 1.000 | 100% | 0% | 100% |
+| **CNN-GRU (ours, tuned)** | **0.858** | **90.0%** | **0.7%** | **65.3%** |
+| XGBoost | 0.868 | 90.7% | 0.6% | 67.3% |
+| Best possible (perfect lookup) | - | - | 0.5% | 67.5% |
+
+* Same score with or without MQTT features (0.8575 vs 0.8579), and over 3 seeds
+  (0.8584 / 0.8583 / 0.8582).
+* Optuna tuning (20 trials) gives no gain: the data, not the model, sets the limit.
+* Accepting 6.6% false alarms raises detection to 73.3%.
+</details>
+
+<details>
+<summary><b>Model comparison (3 seeds each)</b></summary>
+
+| Model | Macro-F1 | Parameters | Size |
 |---|---|---|---|
 | MLP | 0.858 | 5,441 | 24 KB |
 | 1D-CNN | 0.858 | 25,857 | 106 KB |
 | GRU | 0.858 | 24,577 | 99 KB |
 | CNN-GRU (tuned) | 0.858 | 79,169 | 315 KB |
 | XGBoost | 0.868 | 226 trees | 492 KB |
+</details>
 
-On per-packet features the hybrid gives no accuracy gain; all networks hit the same ceiling.
+<details>
+<summary><b>Explainability (SHAP) and the fidelity test</b></summary>
 
-### Explainability with a fidelity test (`results/shap_fidelity.json`)
+* Top features of the final model: `tcp.flags`, `tcp.connection.rst`, `tcp.flags.ack`, `tcp.len`,
+  `tcp.connection.fin`: real TCP behaviour.
+* Retrained without those 5 features: Macro-F1 **0.858 → 0.605**.
+* Retrained without 5 random features: **0.858 → 0.858**.
+</details>
 
-* SHAP top features (final CNN-GRU): `tcp.flags`, `tcp.connection.rst`, `tcp.flags.ack`, `tcp.len`,
-  `tcp.connection.fin` (real TCP behaviour).
-* Retrain without the top-5 SHAP features: Macro-F1 0.858 → **0.605**. Without 5 random features:
-  0.858 → 0.858. SHAP identifies what the model really depends on.
+<details>
+<summary><b>Edge deployment (one CPU thread)</b></summary>
 
-### Edge benchmark (1 CPU thread, `results/edge_benchmark.csv`)
+| Version | Macro-F1 | Size | Time per packet |
+|---|---|---|---|
+| CNN-GRU, full precision | 0.858 | 315 KB | 6.4 ms |
+| **CNN-GRU, half precision (FP16)** | **0.858** | **159 KB** | 6.5 ms |
+| CNN-GRU, INT8 compressed | 0.782 | 88 KB | 13.3 ms |
+| XGBoost | 0.868 | 492 KB | 0.8 ms |
 
-| Version | Macro-F1 | Size | Latency per packet | Throughput |
-|---|---|---|---|---|
-| CNN-GRU FP32 | 0.858 | 315 KB | 6.4 ms | 1,500 rows/s |
-| **CNN-GRU FP16 weights** | **0.858** | **159 KB** | 6.5 ms | 1,660 rows/s |
-| CNN-GRU INT8 (Linear only) | 0.858 | 304 KB | 8.1 ms | 1,620 rows/s |
-| CNN-GRU INT8 (GRU + Linear) | 0.782 | 88 KB | 13.3 ms | 2,050 rows/s |
-| XGBoost | 0.868 | 492 KB | 0.8 ms | 30,700 rows/s |
+FP16 halves the size with no loss; full INT8 compression hurts accuracy.
+</details>
 
-### Attack type (14 attacks + Normal), Edge-IIoTset strict
+<details>
+<summary><b>Attack-type classification and the loss study</b></summary>
 
-Weak on packet data: XGBoost 0.429 Macro-F1, CNN-GRU 0.337 ± 0.033. Loss study over 3 seeds: sqrt
-class weights 0.337 > focal 0.254 > cross-entropy 0.238. Floods and scans are defined by packet
-rate, which a single packet cannot show (`udp.time_delta` is 0 for every attack row).
+On Edge-IIoTset (14 attacks + Normal) per-packet data is not enough: XGBoost 0.429, CNN-GRU
+0.337 Macro-F1. Floods and scans are about packet *rate*, which one packet cannot show.
 
-### CICIoT2023 (flow-level, with rate and timing): `python run_ciciot.py --policy strict`
+Loss functions compared over 3 seeds: square-root class weights **0.337** > focal 0.254 >
+cross-entropy 0.238.
+</details>
 
-1.41M-row capped sample, 87,417 duplicates removed before splitting; shortcut scan after the fix:
-best single feature 0.85, depth-3 tree 0.85 (no giveaway).
+<details>
+<summary><b>CICIoT2023 (flow data with timing)</b></summary>
+
+1.41M-row sample, 87,417 duplicates removed before splitting, `source_file` and the
+`packet_count` window-size shortcut removed.
 
 | Task | Model | Macro-F1 | Notes |
 |---|---|---|---|
-| Benign vs Attack | XGBoost | **0.917** | detects 93.4%, 8.4% false alarms; ROC-AUC 0.979 |
-| Benign vs Attack | CNN-GRU | **0.890** | detects 90.4%, 9.6% false alarms; ROC-AUC 0.966 |
-| 8 categories | XGBoost | **0.752** | |
-| 8 categories | CNN-GRU, sqrt weights | **0.675** | cross-entropy: 0.620 |
+| Benign vs Attack | XGBoost | **0.917** | detects 93.4%, 8.4% false alarms |
+| Benign vs Attack | CNN-GRU | **0.890** | detects 90.4%, 9.6% false alarms |
+| 8 attack categories | XGBoost | **0.752** | |
+| 8 attack categories | CNN-GRU | **0.675** | square-root class weights |
 
-At ≤ 1% false alarms: XGBoost detects 86.6%, CNN-GRU 82.3%. SHAP (CNN-GRU): `header_length`,
-`ack_count_frac`, `rate`, `https`, `arp`.
-
-### Figures (`results/figures/`, built by `make_figures.py`)
-
-* [fig1_fake_vs_honest.png](results/figures/fig1_fake_vs_honest.png): leaky vs honest results
-* [fig2_shap_fidelity.png](results/figures/fig2_shap_fidelity.png): SHAP removal test
-* [fig3_model_comparison.png](results/figures/fig3_model_comparison.png): ablation
-* [fig4_datasets.png](results/figures/fig4_datasets.png): Edge-IIoTset vs CICIoT2023
-* [fig5_detection_ceiling.png](results/figures/fig5_detection_ceiling.png): detection ceiling
+At ≤ 1% false alarms the CNN-GRU still detects 82.3% of attacks. SHAP ranks `rate` (packets per
+second) among its top features.
+</details>
 
 ---
 
-## Setup
+## 🔭 Limitations and next steps
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1          # Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt       # includes torch, optuna, xgboost, psutil
-pip install rich                      # used by watch_dashboard.py
-pip install -r dashboard/requirements_dashboard.txt   # only for the FastAPI web dashboard
-```
+**Limitations (stated honestly)**
 
-For GPU training install the CUDA build of PyTorch (tested on an RTX 4060 Laptop GPU); everything
-also runs on CPU, more slowly.
+* On per-packet features the CNN-GRU is **not better** than a simple MLP or XGBoost.
+* About a third of Edge-IIoTset attack packets are **indistinguishable** from normal ones.
+* The GRU sees **no real time dimension**: each packet is processed alone.
+* Rare attack types (Web, BruteForce) are still weak.
+* One random train/test split per dataset; no cross-dataset test yet.
 
-**Datasets** (not in the repository):
-
-* **Edge-IIoTset:** `python download_dataset.py` downloads it with `kagglehub` and places
-  `DNN-EdgeIIoT-dataset.csv` in `data/raw/`. SHA-256 of the file used:
-  `1d3ef6c7cc22784a528a117f1158f5cad750273679437e18a39c360ee6b79fd7`.
-* **CICIoT2023:** downloaded automatically by `run_ciciot.py` via `kagglehub`
-  (`dhoogla/ciciotdataset2023`, 46.8M rows) into the user's kagglehub cache, **outside the project
-  folder** (and outside OneDrive). Only the sampled, processed splits are written to
-  `data/processed_ciciot*/`.
-
----
-
-## How to run
-
-```bash
-python audit_shortcuts.py --raw                                    # "0"/"0.0" artifact evidence
-python run_clean_baselines.py --policy strict_no_mqtt --stage binary  # preprocess + shortcut scan + baselines
-python run_tune_cnn_gru.py --trials 20 --prefix F                  # Optuna tuning + 3 seeds
-python run_final_studies.py                                        # ablation, SHAP, fidelity, edge benchmark
-python run_operating_points.py && python audit_ceiling.py          # trade-off and detection ceiling
-python run_ciciot.py --policy strict                               # CICIoT2023 (data + training)
-python make_figures.py                                             # results/figures/*.png
-python watch_dashboard.py                                          # live progress (separate window)
-```
-
-* `run_clean_baselines.py --policy` takes `operational`, `strict` or `strict_no_mqtt`;
-  `--study losses --seeds 42 7 2024` runs the multiclass loss comparison.
-* Long runs: `python run_queue.py "<script> <args>" ...` runs commands one after another and keeps
-  Windows awake for the whole sequence. Keep the lid open and the laptop plugged in (on battery the
-  GPU is throttled).
-
-### Safeguards built into the pipeline
-
-* `data/processed/metadata.json` records target, feature policy, canonicalisation flag, feature
-  list and a fingerprint. Training refuses data built for a different target, and SHAP refuses to
-  explain a model whose fingerprint does not match `data/processed/` (an earlier SHAP plot had
-  explained a model with the wrong inputs).
-* Automatic shortcut scan (single-feature stumps, depth-3 tree) after every preprocessing run.
-* 3 seeds for every comparison; decision thresholds chosen on validation only.
-
-### Live demo (for the presentation)
-
-```bash
-python -m uvicorn dashboard.api:app --port 8000
-```
-
-Open http://127.0.0.1:8000/#predict-demo. The final CNN-GRU classifies a real held-out test packet
-(never seen in training), shows the attack probability, whether it was right, the CPU latency, and
-the top SHAP reasons for that packet. Buttons pick a random attack, normal, or any packet. The model
-loads in the background on start-up (about 30 s); it is only served when `data/processed/` matches
-its training data (otherwise the page says which preprocessing command to run).
-
-### Monitoring
-
-* `python watch_dashboard.py`: terminal dashboard reading `run_status.json`,
-  `training_progress.json`, `results/experiment_registry.csv` and `pipeline.log`. It can be started
-  or stopped at any time without affecting the run.
-* Web dashboard (optional): `uvicorn dashboard.api:app --reload --port 8000` plus
-  `python pipeline_monitor.py` in a second terminal, then open http://localhost:8000/pipeline.
-
----
-
-## Limitations and next steps
-
-Limitations: on per-packet features the CNN-GRU is not better than an MLP or XGBoost; about a third
-of Edge-IIoTset attack packets are indistinguishable from normal ones; the GRU sees no real time
-dimension; attack-type detection needs flow/timing data; single split per dataset, no cross-dataset
-test yet.
+**Next steps**
 
 | Gap | Plan |
 |---|---|
-| Missed attacks on packet data | Use flow-level data (CICIoT2023) as the main setting; choose thresholds by acceptable false-alarm rate |
-| Hybrid gives no gain | Give the GRU real sequences (consecutive flow windows per device/connection) |
-| Weak rare classes | Sqrt class weights (already +0.06), targeted oversampling of Web/BruteForce |
-| Generalisation | Cross-dataset test (train on one dataset, test on the other with shared features) |
-| Deployment | FP16 model on a Raspberry-Pi-class device (live dashboard demo is already working) |
+| GRU has no time information | Feed it **sequences** of consecutive flow windows so it can learn how traffic changes |
+| Missed attacks | Use flow-level data as the main setting; pick thresholds by acceptable false-alarm rate |
+| Rare attack types | Square-root class weights (already helps) + targeted oversampling |
+| Generalisation | Train on one dataset, test on the other |
+| Real deployment | Run the 159 KB FP16 model on a Raspberry-Pi-class device |
 
-Results for every experiment: `results/experiment_registry.csv`; per-experiment artifacts in
-`results/experiments/<id>/`.
+---
+
+## 📚 Documentation guide
+
+| If you want… | Read |
+|---|---|
+| All final numbers in one place | [docs/FINAL_RESULTS.md](docs/FINAL_RESULTS.md) |
+| Answers to hard viva questions | [docs/VIVA_QA.md](docs/VIVA_QA.md) |
+| A friendly, non-technical explanation | [docs/FRIENDLY_PROJECT_EXPLANATION.md](docs/FRIENDLY_PROJECT_EXPLANATION.md) |
+| The presentation script (with timer) | [faculty_presentation_script.html](faculty_presentation_script.html) |
+| A full study guide (also as PDF) | [project_mastery_study_guide.html](project_mastery_study_guide.html) |
+| Deep technical detail for mentors | [MENTOR_DEEP_DIVE_PROJECT_STATUS.md](MENTOR_DEEP_DIVE_PROJECT_STATUS.md) |
+| How the shortcut was found and fixed | [docs/LEAKAGE_FIX_AND_CLEAN_BASELINES.md](docs/LEAKAGE_FIX_AND_CLEAN_BASELINES.md) |
+
+Older documents in `docs/` (E01–E05, Phase 2) describe the earlier, leaky stage and carry a
+correction note at the top.
+
+---
+
+## 🙏 Datasets and credits
+
+* **Edge-IIoTset:** M. A. Ferrag et al., *"Edge-IIoTset: A New Comprehensive Realistic Cyber
+  Security Dataset of IoT and IIoT Applications for Centralized and Federated Learning"*, IEEE
+  Access, 2022. Downloaded from Kaggle (`mohamedamineferrag/edgeiiotset-cyber-security-dataset-of-iot-iiot`);
+  file used: `DNN-EdgeIIoT-dataset.csv`.
+* **CICIoT2023:** E. C. P. Neto et al., *"CICIoT2023: A real-time dataset and benchmark for
+  large-scale attacks in IoT environment"*, Sensors, 2023. Used through the Kaggle mirror
+  `dhoogla/ciciotdataset2023` (CC BY-NC-SA 4.0). It is downloaded to the user's cache, not stored
+  in this repository.
+
+Datasets and trained model weights are not committed (see `.gitignore`); every result can be
+regenerated with the commands above.
+
+Minor project, 2026. Contributors: see the commit history.
