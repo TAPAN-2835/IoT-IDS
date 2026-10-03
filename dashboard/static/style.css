@@ -696,6 +696,47 @@ code {
 }
 .predict-result.visible { display: block; }
 
+/* Live demo */
+.demo-model-line { color: var(--text-primary); line-height: 1.7; font-size: 0.92rem; }
+.demo-muted { color: var(--text-secondary); font-size: 0.85rem; }
+.demo-buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn-secondary {
+  background: transparent;
+  color: var(--cyan);
+  border: 1px solid var(--cyan-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 24px;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-secondary:hover { background: var(--cyan-dim); }
+.demo-buttons button:disabled { opacity: 0.5; cursor: wait; }
+.demo-result { font-family: var(--font); font-size: 0.92rem; line-height: 1.6; }
+.demo-verdict-line { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 14px; }
+.verdict { padding: 4px 14px; border-radius: 50px; font-weight: 800; letter-spacing: 0.04em; }
+.verdict-attack { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,0.4); }
+.verdict-normal { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,255,157,0.35); }
+.demo-ok { color: var(--green); font-weight: 700; }
+.demo-miss { color: var(--amber); font-weight: 700; }
+.demo-note { color: var(--amber); background: var(--amber-dim); border-radius: var(--radius-sm); padding: 10px 14px; margin: 0 0 14px; }
+.demo-reasons-title { font-weight: 700; margin: 6px 0 10px; color: var(--text-primary); }
+.reason-row { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 2fr) 90px; gap: 12px; align-items: center; margin-bottom: 8px; }
+.reason-name { font-family: var(--mono); font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); }
+.reason-bar-track { background: rgba(255,255,255,0.05); border-radius: 4px; height: 10px; }
+.reason-bar { height: 10px; border-radius: 4px; }
+.reason-bar.towards-attack { background: var(--red); }
+.reason-bar.towards-normal { background: var(--green); }
+.reason-dir { font-size: 0.8rem; font-weight: 600; }
+.reason-dir.towards-attack { color: var(--red); }
+.reason-dir.towards-normal { color: var(--green); }
+.demo-footnote { margin-top: 12px; }
+@media (max-width: 640px) {
+  .reason-row { grid-template-columns: 1fr; gap: 4px; }
+}
+
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 .footer {
   background: var(--bg-secondary);

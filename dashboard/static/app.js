@@ -164,15 +164,17 @@ function renderMetrics(experiments) {
   const completed = experiments.filter(e => e.status === 'complete');
   const total     = experiments.length;
 
-  const bestAcc  = Math.max(...completed.map(e => e.accuracy || 0));
-  const bestF1   = Math.max(...completed.map(e => e.macro_f1 || 0));
-  const fastest  = Math.min(...completed.filter(e => e.inference_latency).map(e => e.inference_latency));
+  const byId = Object.fromEntries(completed.map(e => [e.experiment_id, e]));
+  const final = byId['F_strict_no_mqtt_binary_best_s42'];
+  const xgb   = byId['N01_xgb_binary_strict_nomqtt'];
+  const cic   = byId['CS02_cnn_gru_binary_strict'];
+  const fmt   = (e, k, d = 3) => (e && e[k] != null ? e[k].toFixed(d) : '—');
 
   const cards = [
-    { icon: '🎯', val: (bestAcc * 100).toFixed(2) + '%', label: 'Best Accuracy', sub: 'E01 Random Forest Binary' },
-    { icon: '📊', val: bestF1.toFixed(4),                label: 'Best Macro F1', sub: 'E02 Random Forest Multiclass' },
-    { icon: '⚡', val: fastest ? fastest.toFixed(4) + ' ms' : '—', label: 'Fastest Inference',  sub: 'per sample, on test set' },
-    { icon: '🧪', val: `${completed.length}/${total}`,   label: 'Experiments Done', sub: `${total - completed.length} pending / in progress` },
+    { icon: '🎯', val: fmt(final, 'macro_f1'), label: 'Honest Macro-F1 (CNN-GRU)', sub: 'Edge-IIoTset, normal vs attack · XGBoost ' + fmt(xgb, 'macro_f1') },
+    { icon: '🧪', val: '1.000 → 0.858', label: 'Fake vs honest score', sub: '"0" vs "0.0" empty-field shortcut removed' },
+    { icon: '🔍', val: '0.858 → 0.605', label: 'SHAP fidelity test', sub: 'removing the top-5 SHAP features breaks the model' },
+    { icon: '🌐', val: fmt(cic, 'macro_f1'), label: 'Second dataset (CICIoT2023)', sub: 'CNN-GRU, normal vs attack, flow features' },
   ];
 
   document.getElementById('metrics-grid').innerHTML = cards.map(c => `

@@ -13,6 +13,12 @@ from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="IoT-IDS Dashboard API", version="1.0.0")
 
+
+@app.on_event("startup")
+def _warm_demo():
+    from dashboard.demo import warm_up
+    warm_up()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 RESULTS_DIR = BASE_DIR / "results"
 MODELS_DIR = BASE_DIR / "models"
@@ -45,37 +51,44 @@ def get_status():
         "phases": [
             {
                 "id": 1,
-                "name": "Data Acquisition & Audit",
+                "name": "Data Audit & Shortcut Removal",
                 "status": "complete",
-                "description": "Downloaded Edge-IIoTset (2.2M rows, 1.6 GB). Performed leakage audit — stripped IPs, MACs, timestamps. Enforced Operational Feature Policy.",
-                "artifacts": ["feature_audit.csv", "leakage_candidates.txt", "operational_feature_policy.csv"],
+                "description": "First models scored a fake 100%: empty fields were written \"0\" in Normal and \"0.0\" in attack captures. Canonicalised tokens, removed per-packet identifiers and MQTT, added automatic shortcut scans.",
+                "artifacts": ["empty_token_audit.csv", "strict_no_mqtt_feature_policy.csv", "detection_ceiling.json"],
             },
             {
                 "id": 2,
-                "name": "Baseline Machine Learning",
+                "name": "Honest Baselines & Tuning",
                 "status": "complete",
-                "description": "Random Forest binary (E01: F1=1.0) and multiclass (E02: 98.25% acc) baselines with full metric tracking and artifact logging.",
-                "artifacts": ["E01_random_forest_binary", "E02_random_forest_multiclass"],
+                "description": "Edge-IIoTset Normal vs Attack: CNN-GRU 0.858 Macro-F1 (3 seeds), XGBoost 0.868. Optuna (20 trials) adds nothing: models sit at the measured detection ceiling.",
+                "artifacts": ["F_strict_no_mqtt_binary_best_s42", "N01_xgb_binary_strict_nomqtt"],
             },
             {
                 "id": 3,
-                "name": "Deep Learning (CNN / GRU / CNN-GRU)",
-                "status": "in_progress",
-                "description": "PyTorch refactor complete. 1D-CNN (E03), GRU (E04), and CNN-GRU Hybrid (E05) training with early stopping and Adam optimizer.",
-                "artifacts": ["E03_cnn1d_binary", "E04_gru_binary", "E05_cnn_gru_binary"],
+                "name": "Ablation: Is the Hybrid Needed?",
+                "status": "complete",
+                "description": "MLP, 1D-CNN, GRU and CNN-GRU all reach 0.858 on per-packet features; the MLP is smallest (24 KB).",
+                "artifacts": ["A_mlp_s42", "A_cnn1d_s42", "A_gru_s42"],
             },
             {
                 "id": 4,
-                "name": "Explainability (SHAP)",
-                "status": "pending",
-                "description": "SHAP feature attributions and GradCAM for the CNN-GRU hybrid. Core research contribution of this paper.",
-                "artifacts": [],
+                "name": "Explainability with Fidelity Proof",
+                "status": "complete",
+                "description": "SHAP top features: tcp.flags, RST/ACK/FIN, tcp.len. Removing the top-5 SHAP features drops Macro-F1 0.858 to 0.605; removing 5 random ones changes nothing.",
+                "artifacts": ["FID_drop_top5_shap", "FID_drop_random5"],
             },
             {
                 "id": 5,
-                "name": "Report & Publication",
+                "name": "Edge Benchmark & Second Dataset",
+                "status": "complete",
+                "description": "FP16 model 159 KB with no loss. CICIoT2023 (flow data, window-size shortcut removed): binary 0.917 XGBoost / 0.890 CNN-GRU, 8 categories 0.752 / 0.675.",
+                "artifacts": ["CS01_xgb_binary_strict", "CS02_cnn_gru_binary_strict", "CS05_cnn_gru_category_sqrt_strict"],
+            },
+            {
+                "id": 6,
+                "name": "Next: Real Time Sequences",
                 "status": "pending",
-                "description": "Comparative analysis across all 8 experiments, ablation study, and research paper write-up.",
+                "description": "Feed the GRU consecutive flow windows so it can learn how traffic changes over time; cross-dataset testing; Raspberry-Pi deployment.",
                 "artifacts": [],
             },
         ]
@@ -101,16 +114,23 @@ def get_experiments():
             row["has_artifacts"] = (RESULTS_DIR / "experiments" / row["experiment_id"]).exists()
             completed[row["experiment_id"]] = row
 
-    # Full planned experiment list
+    # Experiments shown on the dashboard, in story order (leaky originals first, for contrast)
     planned_all = [
-        {"experiment_id": "E01_random_forest_binary",    "model": "Random Forest",  "task": "Binary",     "phase": 2},
-        {"experiment_id": "E02_random_forest_multiclass","model": "Random Forest",  "task": "Multiclass", "phase": 2},
-        {"experiment_id": "E03_cnn1d_binary",            "model": "1D-CNN",         "task": "Binary",     "phase": 3},
-        {"experiment_id": "E04_gru_binary",              "model": "GRU",            "task": "Binary",     "phase": 3},
-        {"experiment_id": "E05_cnn_gru_binary",          "model": "CNN-GRU Hybrid", "task": "Binary",     "phase": 3},
-        {"experiment_id": "E06_cnn1d_multiclass",        "model": "1D-CNN",         "task": "Multiclass", "phase": 3},
-        {"experiment_id": "E07_gru_multiclass",          "model": "GRU",            "task": "Multiclass", "phase": 3},
-        {"experiment_id": "E08_cnn_gru_multiclass",      "model": "CNN-GRU Hybrid", "task": "Multiclass", "phase": 3},
+        {"experiment_id": "E01_random_forest_binary",          "model": "Random Forest (leaky original)", "task": "Binary · Edge-IIoTset",      "phase": 1},
+        {"experiment_id": "E05_cnn_gru_binary",                "model": "CNN-GRU (leaky original)",       "task": "Binary · Edge-IIoTset",      "phase": 1},
+        {"experiment_id": "N01_xgb_binary_strict_nomqtt",      "model": "XGBoost",                        "task": "Binary · Edge-IIoTset",      "phase": 2},
+        {"experiment_id": "F_strict_no_mqtt_binary_best_s42",  "model": "CNN-GRU (final, tuned)",         "task": "Binary · Edge-IIoTset",      "phase": 2},
+        {"experiment_id": "A_mlp_s42",                         "model": "MLP",                            "task": "Binary · Edge-IIoTset",      "phase": 3},
+        {"experiment_id": "A_cnn1d_s42",                       "model": "1D-CNN",                         "task": "Binary · Edge-IIoTset",      "phase": 3},
+        {"experiment_id": "A_gru_s42",                         "model": "GRU",                            "task": "Binary · Edge-IIoTset",      "phase": 3},
+        {"experiment_id": "FID_drop_top5_shap",                "model": "CNN-GRU without top-5 SHAP",     "task": "Fidelity test",              "phase": 4},
+        {"experiment_id": "FID_drop_random5",                  "model": "CNN-GRU without 5 random",       "task": "Fidelity test",              "phase": 4},
+        {"experiment_id": "S03_xgb_multiclass_strict",         "model": "XGBoost",                        "task": "Attack type · Edge-IIoTset", "phase": 3},
+        {"experiment_id": "L_strict_sqrt_weighted_s42",        "model": "CNN-GRU (sqrt weights)",         "task": "Attack type · Edge-IIoTset", "phase": 3},
+        {"experiment_id": "CS01_xgb_binary_strict",            "model": "XGBoost",                        "task": "Binary · CICIoT2023",        "phase": 5},
+        {"experiment_id": "CS02_cnn_gru_binary_strict",        "model": "CNN-GRU",                        "task": "Binary · CICIoT2023",        "phase": 5},
+        {"experiment_id": "CS03_xgb_category_strict",          "model": "XGBoost",                        "task": "8 categories · CICIoT2023",  "phase": 5},
+        {"experiment_id": "CS05_cnn_gru_category_sqrt_strict", "model": "CNN-GRU (sqrt weights)",         "task": "8 categories · CICIoT2023",  "phase": 5},
     ]
 
     result = []
@@ -221,16 +241,39 @@ def get_labels():
         return json.load(f)
 
 
+def _demo_or_503():
+    from dashboard.demo import DemoUnavailable, get_demo
+    try:
+        return get_demo()
+    except DemoUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@app.get("/api/demo/info")
+def demo_info():
+    """Final model used by the live demo, with its test-set metrics."""
+    return _demo_or_503().info()
+
+
+@app.get("/api/demo/sample")
+def demo_sample(kind: str = "any"):
+    """Pick a random held-out test packet: kind = attack | normal | any."""
+    demo = _demo_or_503()
+    sample_id = demo.random_sample(kind)
+    return {"sample_id": sample_id, "actual": "ATTACK" if demo.y[sample_id] == 1 else "NORMAL"}
+
+
 @app.post("/api/predict")
-def predict():
-    """Live inference endpoint (available after Phase 3 completes)."""
-    model_path = MODELS_DIR / "cnn_gru_final.pt"
-    if not model_path.exists():
-        raise HTTPException(
-            status_code=503,
-            detail="CNN-GRU model not trained yet. Run `python run_phase3_binary.py` first.",
-        )
-    return {"message": "Inference endpoint ready — integration coming soon."}
+def predict(payload: dict):
+    """Classify one held-out test packet and explain the verdict with SHAP.
+
+    Body: {"sample_id": <int from /api/demo/sample>}
+    """
+    demo = _demo_or_503()
+    try:
+        return demo.predict(int(payload.get("sample_id", -1)))
+    except (ValueError, TypeError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ──────────────────────────────────────────────────────────────────────────────

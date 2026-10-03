@@ -44,35 +44,35 @@
     <div class="hero-content">
       <div class="hero-badge">
         <span class="hero-badge-dot"></span>
-        Research Project · Edge-IIoTset · 2026
+        Research Project · Edge-IIoTset + CICIoT2023 · 2026
       </div>
       <h1 class="hero-title">
         Explainable <span class="gradient-text">CNN-GRU</span><br />
         Intrusion Detection
       </h1>
       <p class="hero-subtitle">
-        Leakage-aware hybrid deep learning for IoT network security &mdash;<br />
-        2,219,201 network flows &middot; 15 attack classes &middot; strict operational feature policy
+        Shortcut-free, explainable deep learning for IoT network security &mdash;<br />
+        2,219,201 packets audited &middot; hidden dataset shortcuts removed &middot; SHAP proven faithful
       </p>
       <div class="hero-stats" id="hero-stats">
         <div class="hero-stat">
           <span class="hero-stat-val" data-target="2219201" data-format="int">0</span>
-          <span class="hero-stat-label">Network Flows</span>
+          <span class="hero-stat-label">Packets Audited</span>
         </div>
         <div class="hero-stat-sep"></div>
         <div class="hero-stat">
-          <span class="hero-stat-val" data-target="15" data-format="int">0</span>
-          <span class="hero-stat-label">Attack Classes</span>
+          <span class="hero-stat-val" data-target="85.8" data-format="pct">0</span>
+          <span class="hero-stat-label">Honest Macro-F1</span>
         </div>
         <div class="hero-stat-sep"></div>
         <div class="hero-stat">
-          <span class="hero-stat-val" data-target="98.25" data-format="pct">0</span>
-          <span class="hero-stat-label">Best Accuracy</span>
+          <span class="hero-stat-val" data-target="0.7" data-format="pct">0</span>
+          <span class="hero-stat-label">False Alarms</span>
         </div>
         <div class="hero-stat-sep"></div>
         <div class="hero-stat">
-          <span class="hero-stat-val" data-target="8" data-format="int">0</span>
-          <span class="hero-stat-label">Experiments</span>
+          <span class="hero-stat-val" data-target="159" data-format="int">0</span>
+          <span class="hero-stat-label">KB Model (FP16)</span>
         </div>
       </div>
     </div>
@@ -109,7 +109,7 @@
     <div class="container">
       <div class="section-header">
         <h2 class="section-title">Experiment Registry</h2>
-        <p class="section-sub">All 8 planned experiments — click a completed row to explore artifacts</p>
+        <p class="section-sub">Leaky originals first, then the honest final experiments — click a row to explore artifacts</p>
       </div>
 
       <!-- Experiment Table -->
@@ -224,35 +224,23 @@
     <div class="container">
       <div class="section-header">
         <h2 class="section-title">Live Prediction</h2>
-        <p class="section-sub">Real-time inference via the CNN-GRU model</p>
+        <p class="section-sub">The final CNN-GRU classifies real test packets it has never seen, and SHAP explains why</p>
       </div>
       <div class="predict-card" id="predict-card">
         <div class="predict-lock" id="predict-lock">
-          <div class="lock-icon">🔒</div>
-          <h3 class="lock-title">Phase 3 Training Required</h3>
-          <p class="lock-desc">
-            Run <code>python run_phase3_binary.py</code> to train the CNN-GRU model.<br />
-            Once <code>models/cnn_gru_final.pt</code> exists, this panel will unlock.
-          </p>
-          <div class="lock-progress">
-            <div class="lock-prog-step complete">Phase 1 ✅</div>
-            <div class="lock-prog-arrow">→</div>
-            <div class="lock-prog-step complete">Phase 2 ✅</div>
-            <div class="lock-prog-arrow">→</div>
-            <div class="lock-prog-step active">Phase 3 🔄</div>
-            <div class="lock-prog-arrow">→</div>
-            <div class="lock-prog-step">Live Predict 🔒</div>
-          </div>
+          <div class="lock-icon">⏳</div>
+          <h3 class="lock-title" id="predict-lock-title">Loading the model…</h3>
+          <p class="lock-desc" id="predict-lock-desc">The first load takes about 30 seconds.</p>
         </div>
 
-        <!-- This form shows when model is ready (hidden for now) -->
         <div class="predict-form" id="predict-form" style="display:none;">
-          <div class="form-row">
-            <label>Input Features (JSON)</label>
-            <textarea id="predict-input" rows="6" placeholder='{"tcp.len": 0, "mqtt.len": 12, ...}'></textarea>
+          <div class="demo-model-line" id="demo-model-line"></div>
+          <div class="demo-buttons">
+            <button class="btn-primary" data-kind="attack">Random attack packet →</button>
+            <button class="btn-secondary" data-kind="normal">Random normal packet →</button>
+            <button class="btn-secondary" data-kind="any">Surprise me →</button>
           </div>
-          <button class="btn-primary" id="predict-btn">Run Inference →</button>
-          <div id="predict-result" class="predict-result"></div>
+          <div id="predict-result" class="predict-result demo-result" aria-live="polite"></div>
         </div>
       </div>
     </div>
@@ -283,5 +271,6 @@
   </div>
 
   <script src="/static/app.js"></script>
+  <script src="/static/predict.js"></script>
 </body>
 </html>
