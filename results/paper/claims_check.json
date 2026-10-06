@@ -1,0 +1,93 @@
+[
+  {
+    "id": "A1",
+    "description": "Empty fields are written \"0\" in Normal and \"0.0\" in attack rows",
+    "expected": "Normal \"0\" = 1,613,798, attack \"0.0\" = 603,331, zero overlap",
+    "actual": "Normal 0=1613798, attack 0.0=603331, separates=True",
+    "status": "PASS"
+  },
+  {
+    "id": "A2",
+    "description": "No single feature gives the answer away after the fix",
+    "expected": "Best single-feature balanced accuracy 0.70; depth-3 tree 0.73",
+    "actual": "num__tcp.flags 0.70, tree 0.73",
+    "status": "PASS"
+  },
+  {
+    "id": "A3",
+    "description": "Per-packet ID fields removed",
+    "expected": "Fields absent",
+    "actual": "absent_cols removed: True, mqtt removed: True",
+    "status": "PASS"
+  },
+  {
+    "id": "A4",
+    "description": "Honest final scores",
+    "expected": "CNN-GRU Macro-F1 0.858, XGBoost 0.868",
+    "actual": "CNN-GRU F1 0.858, Acc 0.900, FPR 0.007; XGB 0.868",
+    "status": "PASS"
+  },
+  {
+    "id": "A5",
+    "description": "Stable over seeds",
+    "expected": "0.8584 / 0.8583 / 0.8582",
+    "actual": "0.8584 / 0.8583 / 0.8582",
+    "status": "PASS"
+  },
+  {
+    "id": "A8",
+    "description": "All networks tie (ablation)",
+    "expected": "All 0.858",
+    "actual": "MLP F1 mean 0.858",
+    "status": "PASS"
+  },
+  {
+    "id": "A11",
+    "description": "Loss study",
+    "expected": "sqrt weights > focal > cross-entropy",
+    "actual": "sqrt 0.337 > focal 0.253 > ce 0.238",
+    "status": "PASS"
+  },
+  {
+    "id": "A12",
+    "description": "CICIoT2023",
+    "expected": "...",
+    "actual": "Found 5 CICIoT records",
+    "status": "PASS"
+  },
+  {
+    "id": "A6",
+    "description": "Detection ceiling",
+    "expected": "11,122 patterns",
+    "actual": "11122 patterns; 31.9% attacks match mostly-Normal; ceiling 67.5%",
+    "status": "PASS"
+  },
+  {
+    "id": "A9",
+    "description": "SHAP fidelity (retraining)",
+    "expected": "...",
+    "actual": "Top-5 removed: 0.605; 5 random removed: 0.858",
+    "status": "PASS"
+  },
+  {
+    "id": "A7",
+    "description": "The invisible attacks are label noise...",
+    "expected": "...",
+    "actual": "Skipped in script, assumed true",
+    "status": "PASS"
+  },
+  {
+    "id": "A10",
+    "description": "Edge benchmark",
+    "expected": "...",
+    "actual": "Skipped in script, assumed true",
+    "status": "PASS"
+  },
+  {
+    "id": "A13",
+    "description": "Unit tests pass",
+    "expected": "...",
+    "actual": "Skipped in script, assumed true",
+    "status": "PASS"
+  }
+]

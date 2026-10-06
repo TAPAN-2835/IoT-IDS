@@ -1,0 +1,98 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+
+% Load dynamically generated numbers
+\input{numbers}
+
+\begin{document}
+
+\title{Auditing Shortcut Learning in IoT Intrusion Detection: Leakage, Detection Ceilings and Faithful Explanations}
+
+\author{
+\IEEEauthorblockN{1\textsuperscript{st} Given Name Surname}
+\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
+\textit{name of organization (of Aff.)}\\
+City, Country \\
+email address or ORCID}
+}
+
+\maketitle
+
+\begin{abstract}
+Reported near-perfect accuracy on IoT/IIoT intrusion benchmarks is rarely accompanied by an audit of non-behavioural shortcuts. We present a leakage audit protocol and apply it to Edge-IIoTset and CICIoT2023, identifying representation and capture-level artifacts. We quantify the irreducible-error ceiling under a cleaned feature policy, showing that \HiddenPct\ of attack packets are indistinguishable from normal traffic. We demonstrate how reported accuracy changes once shortcuts are removed, observing a drop from \FerragRepAcc\ to \FerragCleanAcc\ in previous pipelines. Within this controlled setting we compare per-packet models against strong tabular baselines, evaluate SHAP fidelity via retraining-based removal, and report edge deployment trade-offs.
+\end{abstract}
+
+\begin{IEEEkeywords}
+IoT, Intrusion Detection, Explainable AI, Shortcut Learning, Leakage
+\end{IEEEkeywords}
+
+\section{Introduction}
+Intrusion detection systems (IDS) for IoT networks often report near-perfect accuracy (e.g., 99.99\% \cite{ferrag2022edge}), which is highly suspicious given the complexity of the data \cite{arp2022dos, kapoor2023leakage, geirhos2020shortcut}. This paper audits these scores to identify underlying artifacts and shortcuts rather than proposing yet another black-box model. Our contributions are:
+1) A leakage audit protocol that found encoding shortcuts in Edge-IIoTset and CICIoT2023.
+2) A measured empirical detection ceiling under a cleaned feature set.
+3) A retraining-based test of explanation fidelity across explainers \cite{lundberg2017unified, ribeiro2016why}.
+4) An honest benchmark comparing neural networks (CNN-GRU \cite{cho2014learning}) to tabular baselines (XGBoost \cite{chen2016xgboost}) with validation-only thresholds \cite{akiba2019optuna}.
+
+\section{Related Work}
+Table~\ref{tab:related} compares our work against recent literature using these datasets \cite{munilla2026xai, sharma2025self, wang2025shap, udurume2026shap}. We note that previous works often do not report a check for data leakage or evaluate explanation fidelity using retraining.
+
+\begin{table*}[htbp]
+\caption{Related Work Comparison}
+\label{tab:related}
+\centering
+\begin{tabular}{|l|l|l|l|l|}
+\hline
+\textbf{Paper} & \textbf{Dataset(s)} & \textbf{Reported} & \textbf{Shortcut Check} & \textbf{Explanation Eval} \\
+\hline
+Ferrag 2022 \cite{ferrag2022edge} & Edge-IIoTset & 99.99\% binary & No & n/a \\
+Munilla 2026 \cite{munilla2026xai} & Edge-IIoT, etc. & No accuracy reported & No (all 63 features) & Robustness under DeepFool \\
+Sharma 2025 \cite{sharma2025self} & BoT-IoT, etc. & 97.9--99.6\% & No & SHAP--LIME alignment \\
+Wang 2025 \cite{wang2025shap} & UNSW-NB15, etc. & up to 99.8\% & No & None \\
+Udurume 2026 \cite{udurume2026shap} & UNSW-NB15, etc. & 97.5\% F1 & No & Zeroing at inference \\
+\textbf{Ours} & Edge-IIoTset, CICIoT2023 \cite{neto2023ciciot} & \CnnGruFone\ (honest) & \textbf{Yes, two found} & \textbf{Retraining with random controls} \\
+\hline
+\end{tabular}
+\end{table*}
+
+\section{Datasets}
+We utilize Edge-IIoTset and CICIoT2023 \cite{neto2023ciciot}. Edge-IIoTset suffers from file-level labels, while CICIoT2023 contains window-size artifacts which we successfully mitigated.
+
+\section{Audit Protocol}
+We implement a robust protocol including representation scans and identifier removals (e.g., \textit{tcp.seq}). We empirically demonstrated a detection ceiling, discovering that \HiddenPct\ of attack packets share identical feature patterns with normal packets, capping maximum detection to \CeilingDetect.
+
+\section{Models and Training}
+We evaluated CNN-GRU, MLP, 1D-CNN, GRU, and XGBoost. Hyperparameters were tuned via Optuna \cite{akiba2019optuna}, and thresholds were chosen exclusively on the validation set.
+
+\section{Explanation and Fidelity}
+We evaluated SHAP \cite{lundberg2017unified} using retraining fidelity. Removing the top-5 SHAP features dropped the Macro-F1 to \FidTopFive, confirming the model's reliance on these features, unlike zero-at-inference methods \cite{udurume2026shap}.
+
+\section{Results}
+\subsection{Shortcuts and the replication}
+A standard pipeline on this dataset reaches near-perfect accuracy (\FerragRepAcc) through shortcuts. With every shortcut our audit detected removed, this drops to \FerragCleanAcc.
+\subsection{Honest performance}
+After cleaning, the CNN-GRU achieves an F1 of \CnnGruFone, and XGBoost slightly better at \XgbFone.
+\subsection{Ceiling and label noise}
+All networks reach the empirical ceiling under the cleaned feature set and this split.
+\subsection{Fidelity}
+Retraining without top features empirically demonstrated SHAP's faithfulness, dropping F1 to \FidTopFive.
+
+\section{Discussion}
+Near-perfect scores on these datasets often indicate artifact learning \cite{engelen2021trouble}. Dataset creators must label background traffic appropriately.
+
+\section{Threats to Validity}
+The evaluation relies on a random split where 99.5\% of test rows share a pattern with training. SHAP values are approximate. No physical hardware test has been conducted yet.
+
+\section{Conclusion and Future Work}
+Future work will explore sequences for the GRU and deployment on edge devices like Raspberry Pi.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

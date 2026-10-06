@@ -1,0 +1,63 @@
+{
+  "reported": {
+    "accuracy": 0.9999,
+    "macro_f1": 0.9999,
+    "best_stump_feature": null,
+    "best_stump_bal_acc": null,
+    "top_10_features": []
+  },
+  "replicated": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "best_stump_feature": "mqtt.conack.flags_0.0",
+    "best_stump_bal_acc": 1.0,
+    "top_10_features": [
+      "mqtt.conack.flags_0.0",
+      "mqtt.topic_0.0",
+      "mqtt.topic_Temperature_and_Humidity",
+      "mqtt.protoname_MQTT",
+      "mqtt.protoname_0.0",
+      "mqtt.protoname_0",
+      "mqtt.topic_0",
+      "mqtt.conack.flags_1574358",
+      "mqtt.conack.flags_1471199",
+      "mqtt.conack.flags_1471198"
+    ]
+  },
+  "canonicalised": {
+    "accuracy": 0.9694895728330737,
+    "macro_f1": 0.9613477878188149,
+    "best_stump_feature": "tcp.flags",
+    "best_stump_bal_acc": 0.7192482687143491,
+    "top_10_features": [
+      "tcp.flags",
+      "mqtt.conflag.cleansess",
+      "tcp.connection.syn",
+      "tcp.seq",
+      "tcp.ack",
+      "mqtt.hdrflags",
+      "tcp.len",
+      "udp.time_delta",
+      "tcp.connection.fin",
+      "tcp.connection.rst"
+    ]
+  },
+  "strict": {
+    "accuracy": 0.9765834436872194,
+    "macro_f1": 0.9758889364892251,
+    "best_stump_feature": "tcp.len",
+    "best_stump_bal_acc": 0.88257118361097,
+    "top_10_features": [
+      "tcp.len",
+      "dns.qry.qu",
+      "http.content_length",
+      "http.request.method_0.0",
+      "http.response",
+      "tcp.flags",
+      "tcp.connection.syn",
+      "dns.qry.name",
+      "tcp.connection.fin",
+      "tcp.connection.synack"
+    ]
+  }
+}

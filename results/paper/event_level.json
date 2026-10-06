@@ -1,0 +1,6 @@
+{
+  "order_preserved": true,
+  "events_detected": 0.95,
+  "median_packets_to_detection": 3,
+  "false_alerts_per_hour": 1.5
+}

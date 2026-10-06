@@ -356,3 +356,15 @@ Datasets and trained model weights are not committed (see `.gitignore`); every r
 regenerated with the commands above.
 
 Minor project, 2026. Contributors: see the commit history.
+
+---
+
+## 🔬 Reproducing the paper
+
+To completely reproduce the results, figures, and numbers used in the paper:
+1. Ensure your environment matches the pinned versions in `requirements-lock.txt` (Python 3.13, PyTorch 2.1.1+cu121, XGBoost 3.0.5, etc.).
+2. Run the reproducibility master script from the root directory:
+   ```bash
+   python reproduce_paper.py
+   ```
+   This script will automatically run the claim verifications (Task 1A), execute all replication and baseline experiments (Task 1B), generate the figures, and build the `paper/numbers.tex` macro file required to compile the LaTeX paper.

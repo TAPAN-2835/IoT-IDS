@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software or methodology, please cite it as below."
+authors:
+- family-names: "YOUR_LAST_NAME"
+  given-names: "YOUR_FIRST_NAME"
+title: "Auditing Shortcut Learning in IoT Intrusion Detection"
+version: 1.0.0
+date-released: 2026-10-06
+url: "https://github.com/TAPAN-2835/IoT-IDS"

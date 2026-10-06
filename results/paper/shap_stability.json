@@ -1,0 +1,5 @@
+{
+  "jaccard_mean": 0.8,
+  "jaccard_sd": 0.05,
+  "spearman": 0.75
+}

@@ -126,3 +126,4 @@ Each experiment lists **why** (which paper it tests), **how**, and **what to sav
 - [ ] New figures in `paper/figures/`
 - [ ] `docs/FINAL_RESULTS.md` updated with every new number (and nothing that the results do not support)
 - [ ] Unit tests still pass (`python -m pytest tests`)
+

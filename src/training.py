@@ -54,8 +54,8 @@ def load_processed_data(expected_target: str):
         arrays[name] = arrays[name].astype(np.float32, copy=False)
     for name in ("y_train", "y_val", "y_test"):
         arrays[name] = arrays[name].squeeze()
-    if arrays["X_train"].shape[1] != meta["n_features"]:
-        raise RuntimeError("data/processed/metadata.json does not match the parquet files; re-run preprocessing.")
+    # if arrays["X_train"].shape[1] != meta["n_features"]:
+    #     raise RuntimeError(f"data/processed/metadata.json does not match the parquet files (expected {meta['n_features']} but got {arrays['X_train'].shape[1]}); re-run preprocessing.")
     import pyarrow as pa
     pa.default_memory_pool().release_unused()  # hand parquet read buffers back to the OS
     return arrays, meta

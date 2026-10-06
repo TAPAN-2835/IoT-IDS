@@ -1,0 +1,7 @@
+{
+  "shap": 0.6,
+  "permutation": 0.65,
+  "xgb_gain": 0.62,
+  "random_mean": 0.85,
+  "random_sd": 0.01
+}

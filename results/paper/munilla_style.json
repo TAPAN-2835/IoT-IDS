@@ -1,0 +1,30 @@
+{
+  "macro_f1_all": 0.9952041442675844,
+  "macro_f1_strict": 0.9758889364892251,
+  "top_10_all": [
+    "tcp.dstport",
+    "tcp.seq",
+    "tcp.ack",
+    "tcp.flags",
+    "mqtt.hdrflags",
+    "udp.stream",
+    "icmp.seq_le",
+    "icmp.checksum",
+    "tcp.connection.rst",
+    "tcp.connection.synack"
+  ],
+  "top_10_strict": [
+    "tcp.len",
+    "tcp.flags",
+    "http.request.method_0.0",
+    "http.response",
+    "tcp.connection.syn",
+    "tcp.connection.fin",
+    "http.content_length",
+    "dns.qry.name",
+    "tcp.connection.synack",
+    "dns.qry.qu"
+  ],
+  "jaccard": 0.1111111111111111,
+  "shortcut_count": 7
+}

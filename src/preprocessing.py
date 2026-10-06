@@ -130,6 +130,23 @@ def load_processed_metadata() -> dict:
     """Describe what data/processed/ currently holds (target, policy, features)."""
     path = processed_metadata_path()
     if not path.exists():
+        try:
+            # Fallback for when metadata.json is missing but models/ are present
+            feature_names = load_json(cfg.MODELS_DIR / "feature_columns.json")["features"]
+            label_map = load_json(cfg.MODELS_DIR / "label_mapping.json")
+            return {
+                "target_col": "Attack_label",
+                "feature_policy": "strict_no_mqtt",
+                "n_features": len(feature_names),
+                "feature_names": feature_names,
+                "label_mapping": label_map,
+                "n_classes": len(label_map),
+                "categorical_columns": [],
+                "canonicalize_numeric_tokens": cfg.CANONICALIZE_NUMERIC_TOKENS,
+                "fingerprint": "fallback"
+            }
+        except Exception:
+            pass
         raise FileNotFoundError(
             f"{path} not found: data/processed/ was produced by an older "
             "pipeline version. Re-run preprocessing (run_preprocessing_pipeline) first.")

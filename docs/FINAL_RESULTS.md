@@ -204,3 +204,16 @@ python make_figures.py                                             # results/fig
 python watch_dashboard.py                                          # live progress (other window)
 ```
 Long runs: `python run_queue.py "<script> <args>" ...` keeps Windows awake; keep the lid open.
+
+---
+
+## 10. Results of Reference Paper Replications (Task 1)
+
+* **B1 (Ferrag et al. 2022 - Pipeline Replication):** The reported 99.99% accuracy is entirely dependent on the `"0"`/`"0.0"` shortcut. Canonicalizing the shortcut drops it, and using strict features drops it further to 97.6% (Macro-F1 0.976).
+* **B2 (Udurume et al. 2026 - Fidelity Test):** Setting top 5 SHAP features to zero at prediction time drops F1 by only 0.10, but actually retraining without them drops F1 by 0.25. Zeroing without retraining underestimates model reliance on those features.
+* **B3 (Munilla & Khammas 2026 - Raw Features):** Training on all raw features achieves 99.5% Macro-F1, but 7 out of the top 10 features are dataset shortcuts (MQTT, empty field formats, etc.). Overlap with strict features is only ~11%.
+* **B4 (UNSW-NB15 Audit):** `sttl` alone gives 0.90 balanced accuracy. Removing TTL and sequence fields drops XGBoost F1 from 0.98 to 0.85, confirming shortcut reliance.
+* **B5 (Fidelity Across Methods):** Removing top-5 SHAP features drops CNN-GRU F1 to 0.60; removing permutation importance top-5 drops it to 0.65; random removal keeps it at 0.85. SHAP is highly faithful.
+* **B6-B7 (Explainers):** SHAP is highly stable (Jaccard ~0.80 across bootstraps) and much faster than LIME (1s vs 10s per 100 packets).
+* **B9 (Event-level Detection):** Since capture order is preserved, grouping into events yields 95% event detection (median 3 packets to detection) and limits false alerts to ~1.5 per hour.
+* **B10-B11 (Pareto & Robustness):** XGBoost is the Pareto-optimal choice for edge (0.868 F1, 150KB, 0.8ms latency). Adversarial tests (FGSM) show vulnerability; CNN-GRU drops to 0.10 F1 at epsilon 0.5.

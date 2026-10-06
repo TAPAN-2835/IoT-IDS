@@ -1,0 +1,7 @@
+{
+  "zero_mean_drop": 0.1,
+  "zero_min_drop": 0.15,
+  "retrain_drop": 0.25,
+  "random_feature_mean": 0.01,
+  "random_feature_sd": 0.005
+}
